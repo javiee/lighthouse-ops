@@ -1,26 +1,14 @@
 { pkgs, ... }:
 
 {
-  imports = [
-    ./ssh.nix
-    ./users.nix
-    ./tailscale.nix
-  ];
-  system.stateVersion = "25.11";
-
-  # Bootloader
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Networking
-  networking.hostName = "nixos";
   networking.networkmanager.enable = true;
   networking.firewall.enable = true;
 
-  # Nix settings
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-  # Locale
   time.timeZone = "Europe/Madrid";
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.extraLocaleSettings = {
@@ -35,36 +23,10 @@
     LC_TIME = "es_ES.UTF-8";
   };
 
-  # Console and keyboard
   console.keyMap = "es";
 
-  # Desktop - XFCE
-  services.xserver.enable = true;
-  services.xserver.displayManager.lightdm.enable = true;
-  services.xserver.desktopManager.xfce.enable = true;
-  services.xserver.xkb = {
-    layout = "es";
-    variant = "";
-  };
-
-  # Audio - PipeWire
-  services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-  };
-
-  # Printing
-  services.printing.enable = true;
-
-  # Programs
-  programs.firefox.enable = true;
   nixpkgs.config.allowUnfree = true;
 
-  # System packages
   environment.systemPackages = with pkgs; [
     vim
     wget

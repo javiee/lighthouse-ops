@@ -3,16 +3,27 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-  };
-
-  outputs = { self, nixpkgs, ... }: {
-    nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        ./nix/hardware/hpelitedesk.nix
-        ./nix/lh-satellite.nix
-        ./nix/tailscale.nix
-      ];
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
+
+  outputs = { self, nixpkgs, agenix, ... }:
+    let
+      mkHost = hostname: nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { inherit hostname; };
+        modules = [
+          agenix.nixosModules.default
+          ./nix/hosts/${hostname}
+        ];
+      };
+    in {
+      nixosConfigurations = {
+        lh-satellite = mkHost "lh-satellite";
+        # lh-node-2 = mkHost "lh-node-2";
+        # lh-node-3 = mkHost "lh-node-3";
+      };
+    };
 }
