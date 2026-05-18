@@ -1,0 +1,115 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: prometheus-community
+  namespace: monitoring
+spec:
+  interval: 1h
+  url: https://prometheus-community.github.io/helm-charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+  namespace: monitoring
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: "~75.0"   # update when you bump
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: monitoring
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    prometheus:
+      prometheusSpec:
+        retention: 7d
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 100m
+          limits:
+            memory: 2Gi
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              accessModes: ["ReadWriteOnce"]
+              resources:
+                requests:
+                  storage: 10Gi
+        # Auto-discover ServiceMonitors from any namespace.
+        serviceMonitorSelectorNilUsesHelmValues: false
+        podMonitorSelectorNilUsesHelmValues: false
+        ruleSelectorNilUsesHelmValues: false
+
+    grafana:
+      enabled: true
+      # If unset, chart generates a random admin password. Retrieve with:
+      #   kubectl -n monitoring get secret kube-prometheus-stack-grafana \
+      #     -o jsonpath='{.data.admin-password}' | base64 -d
+      persistence:
+        enabled: true
+        storageClassName: local-path
+        size: 5Gi
+      service:
+        type: ClusterIP   # change to LoadBalancer/NodePort once you have ingress
+      defaultDashboardsEnabled: true
+      sidecar:
+        dashboards:
+          enabled: true
+          searchNamespace: ALL
+        datasources:
+          enabled: true
+
+    # ── Host node-exporter ────────────────────────────────────────────────
+    nodeExporter:
+      enabled: true
+    prometheus-node-exporter:
+      hostNetwork: true       # see all host interfaces
+      hostRootfs: true        # read host filesystem stats
+      extraArgs:
+        - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+        - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
+
+    # ── Cluster-state metrics ─────────────────────────────────────────────
+    kubeStateMetrics:
+      enabled: true
+
+    # ── Alertmanager: off for now (re-enable when you want alerts) ────────
+    alertmanager:
+      enabled: false
+
+    defaultRules:
+      create: true
+      rules:
+        alertmanager: false   # off since alertmanager is disabled
+
+    # ── k3s quirks ────────────────────────────────────────────────────────
+    # k3s bundles controller-manager and scheduler inside the main k3s process,
+    # and uses a built-in proxy. Their separate ServiceMonitors would 404.
+    kubeControllerManager:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    kubeProxy:
+      enabled: false
+    # k3s exposes etcd metrics differently — enable later via a custom ServiceMonitor.
+    kubeEtcd:
+      enabled: false
