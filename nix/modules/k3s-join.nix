@@ -12,20 +12,15 @@
   services.k3s = {
     enable = true;
     role = "agent";  # or "server" for HA
-    serverAddr = "https://CHANGE_ME:6443";
+    serverAddr = "https://192.168.10.122:6443";
     tokenFile = config.age.secrets.k3s-token.path;
-    extraFlags = [
-      "--flannel-iface=tailscale0"
-    ];
   };
 
-  systemd.services.k3s = {
-    after = [ "tailscaled.service" ];
-    wants = [ "tailscaled.service" ];
-  };
-
-  # Agent needs kubelet (10250) and flannel (8472/udp). Servers additionally need 6443 + etcd ports.
-  networking.firewall.allowedTCPPorts = [ 10250 ];
+  # Agent ports:
+  #   10250 = kubelet (API server proxy: logs, exec, port-forward)
+  #    9100 = prometheus-node-exporter (host metrics)
+  #    8472 = flannel VXLAN (pod-to-pod overlay)
+  networking.firewall.allowedTCPPorts = [ 10250 9100 ];
   networking.firewall.allowedUDPPorts = [ 8472 ];
 
   environment.systemPackages = with pkgs; [
@@ -33,3 +28,4 @@
     kubectl
   ];
 }
+

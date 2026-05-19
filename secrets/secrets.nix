@@ -13,10 +13,11 @@ let
   javier = "age12ah4v9zs84xsrkgfv4al0ks3n3f5ggaqvdpzmgtz7pfqwptea5yqdfu3ql";
 
   lh-satellite = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINYYH9wRSABfQ8nCD3oqY8J3o+ItjX4oL3jTCv7Fi5Ny root@nixos";
+  leviathan = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICUJUmg1QGQSBZ2NbtakUeSWUIUpYOgYbhuGmjMu0uuA root@nixos";
   # lh-node-2 = "ssh-ed25519 AAAA...";
   # lh-node-3 = "ssh-ed25519 AAAA...";
 
-  allHosts = [ lh-satellite ];
+  allHosts = [ lh-satellite leviathan];
   allUsers = [ javier ];
 in
 {
