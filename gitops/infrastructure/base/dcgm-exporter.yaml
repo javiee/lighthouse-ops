@@ -1,0 +1,50 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: nvidia-dcgm-exporter
+  namespace: monitoring
+spec:
+  interval: 1h
+  url: https://nvidia.github.io/dcgm-exporter/helm-charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: dcgm-exporter
+  namespace: monitoring
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: dcgm-exporter
+      version: "4.x"
+      sourceRef:
+        kind: HelmRepository
+        name: nvidia-dcgm-exporter
+        namespace: monitoring
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    # Only on GPU nodes
+    nodeSelector:
+      kubernetes.io/hostname: leviathan
+
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      additionalLabels:
+        # so kube-prometheus-stack's Prometheus picks it up
+        release: kube-prometheus-stack
+
+    # Try without runtimeClassName first. If pods fail with
+    # "could not select device driver" or similar, we'll need to
+    # register the nvidia containerd runtime (see Option A/B discussion).
+    # runtimeClassName: nvidia
+
+    # Listen on host network so firewall rules apply to host port 9400.
+    hostNetwork: true
