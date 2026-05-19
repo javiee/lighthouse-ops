@@ -38,6 +38,15 @@ spec:
       retries: 3
   values:
     prometheus:
+      ingress:
+        enabled: true
+        ingressClassName: traefik
+        annotations:
+          traefik.ingress.kubernetes.io/router.entrypoints: web
+        hosts:
+          - prometheus.lighthouse.local
+        paths:
+          - /
       prometheusSpec:
         retention: 7d
         resources:
@@ -69,7 +78,15 @@ spec:
         storageClassName: local-path
         size: 5Gi
       service:
-        type: ClusterIP   # change to LoadBalancer/NodePort once you have ingress
+        type: ClusterIP   # traffic comes via the Ingress below
+      ingress:
+        enabled: true
+        ingressClassName: traefik
+        annotations:
+          traefik.ingress.kubernetes.io/router.entrypoints: web
+        hosts:
+          - grafana.lighthouse.local
+        path: /
       defaultDashboardsEnabled: true
       sidecar:
         dashboards:
