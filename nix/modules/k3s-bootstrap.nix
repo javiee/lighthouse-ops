@@ -26,7 +26,14 @@
     wants = [ "tailscaled.service" ];
   };
 
-  networking.firewall.allowedTCPPorts = [ 80 443 6443 10250 2379 2380 ];
+  # Server ports:
+  #     80/443 = traefik ingress
+  #       6443 = kube API server
+  #      10250 = kubelet
+  #       9100 = prometheus-node-exporter (host metrics)
+  #  2379-2380 = etcd (client + peer)
+  #       8472 = flannel VXLAN (pod-to-pod overlay)
+  networking.firewall.allowedTCPPorts = [ 80 443 6443 10250 9100 2379 2380 ];
   networking.firewall.allowedUDPPorts = [ 8472 ];
 
   users.groups.kubeconfig = {};
