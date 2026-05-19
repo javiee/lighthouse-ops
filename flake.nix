@@ -22,8 +22,7 @@
     in {
       nixosConfigurations = {
         lh-satellite = mkHost "lh-satellite";
-        # lh-node-2 = mkHost "lh-node-2";
-        # lh-node-3 = mkHost "lh-node-3";
+        leviathan    = mkHost "leviathan";
       };
     };
 }

@@ -35,5 +35,6 @@
     htop
     tmux
     unzip
+    opencode
   ];
 }
