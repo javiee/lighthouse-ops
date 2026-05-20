@@ -28,8 +28,18 @@
   hardware.nvidia-container-toolkit.enable = true;
 
   environment.systemPackages = with pkgs; [
-    # cudaPackages.cudatoolkit
-    # cudaPackages.cudnn
+    nvidia-container-toolkit 
     nvtopPackages.full          # GPU monitoring TUI
+    nvidia-container-toolkit.tools    # nvidia-container-runtime + hook
+    runc
+  ];
+
+  # NixOS doesn't have /usr/bin or /usr/local/nvidia. Symlink the binaries
+  # that the CDI spec and k3s' containerd auto-detection look for there.
+  #   - nvidia-container-runtime → in the `.tools` subpackage
+  #   - nvidia-ctk → in the main nvidia-container-toolkit package
+  systemd.tmpfiles.rules = [
+    "L+ /usr/local/nvidia/toolkit/nvidia-container-runtime - - - - ${pkgs.nvidia-container-toolkit.tools}/bin/nvidia-container-runtime"
+    "L+ /usr/bin/nvidia-ctk - - - - ${pkgs.nvidia-container-toolkit}/bin/nvidia-ctk"
   ];
 }
