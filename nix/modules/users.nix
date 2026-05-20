@@ -13,7 +13,7 @@
     ohMyZsh = {
       enable = true;
       plugins = [ "git" "docker" "kubectl" ];
-      theme = "bira";
+      theme = "cypher";
     };
   };
 }

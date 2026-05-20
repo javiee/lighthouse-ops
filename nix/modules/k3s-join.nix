@@ -19,8 +19,9 @@
   # Agent ports:
   #   10250 = kubelet (API server proxy: logs, exec, port-forward)
   #    9100 = prometheus-node-exporter (host metrics)
+  #    9400 = nvidia dcgm-exporter (GPU metrics)
   #    8472 = flannel VXLAN (pod-to-pod overlay)
-  networking.firewall.allowedTCPPorts = [ 10250 9100 ];
+  networking.firewall.allowedTCPPorts = [ 10250 9100 9400 ];
   networking.firewall.allowedUDPPorts = [ 8472 ];
 
   environment.systemPackages = with pkgs; [

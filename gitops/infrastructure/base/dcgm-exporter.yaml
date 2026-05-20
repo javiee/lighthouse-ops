@@ -1,4 +1,10 @@
 ---
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: nvidia
+handler: nvidia
+---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
@@ -41,10 +47,10 @@ spec:
         # so kube-prometheus-stack's Prometheus picks it up
         release: kube-prometheus-stack
 
-    # Try without runtimeClassName first. If pods fail with
-    # "could not select device driver" or similar, we'll need to
-    # register the nvidia containerd runtime (see Option A/B discussion).
-    # runtimeClassName: nvidia
+    # Use the nvidia containerd runtime so the pod gets GPU passthrough.
+    # Requires k3s-nvidia.nix on the host (registers the runtime) AND the
+    # RuntimeClass above (this same file).
+    runtimeClassName: nvidia
 
     # Listen on host network so firewall rules apply to host port 9400.
     hostNetwork: true
