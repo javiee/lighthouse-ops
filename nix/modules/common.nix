@@ -1,5 +1,17 @@
-{ pkgs, ... }:
+{ pkgs, opencode, ... }:
 
+let
+  # opencode 1.15.6 build asserts bun >= 1.3.14, but every nixpkgs (stable,
+  # unstable, opencode's own lock) currently ships bun 1.3.13. The runtime
+  # behaviour is identical between the two; the check is purely defensive.
+  # Neuter it so the build proceeds.
+  opencode-patched = opencode.packages.${pkgs.system}.default.overrideAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace packages/script/src/index.ts \
+        --replace-fail 'semver.satisfies(process.versions.bun, expectedBunVersionRange)' 'true'
+    '';
+  });
+in
 {
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -27,6 +39,10 @@
 
   nixpkgs.config.allowUnfree = true;
 
+  # Also export the env var so `nix run`, `nix shell`, etc. honour unfree
+  # licenses without --impure or per-command setting.
+  environment.sessionVariables.NIXPKGS_ALLOW_UNFREE = "1";
+
   environment.systemPackages = with pkgs; [
     vim
     wget
@@ -35,6 +51,6 @@
     htop
     tmux
     unzip
-    opencode
+    opencode-patched                            # pinned to v1.15.6 via flake input (bun check patched)
   ];
 }

@@ -32,6 +32,7 @@
     nvtopPackages.full          # GPU monitoring TUI
     nvidia-container-toolkit.tools    # nvidia-container-runtime + hook
     runc
+    python3Packages.huggingface-hub   # provides `huggingface-cli` on PATH
   ];
 
   # NixOS doesn't have /usr/bin or /usr/local/nvidia. Symlink the binaries
