@@ -23,11 +23,13 @@
       mkHost = hostname: nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = {
-          inherit hostname opencode;
+          inherit hostname opencode nixpkgs-unstable;
+          # Flake reference to nixpkgs-unstable for nixosModules import
+          unstableNixpkgs = nixpkgs-unstable;
           # nixpkgs-unstable for packages where nixos-25.11's version is too
           # old (e.g. llama-cpp). Construct with allowUnfree so its CUDA
           # deps evaluate.
-          unstable = import nixpkgs-unstable {
+          _unstablePkgs = import nixpkgs-unstable {
             system = "x86_64-linux";
             config.allowUnfree = true;
           };
