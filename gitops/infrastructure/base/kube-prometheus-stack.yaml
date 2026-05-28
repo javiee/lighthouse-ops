@@ -74,39 +74,6 @@ spec:
               - targets: ['192.168.10.127:9090']
             scheme: http
 
-          # llama-server inference metrics, proxied via llama-swap.
-          # Each model exposes its own /upstream/<id>/metrics path through
-          # llama-swap. Only the currently-loaded model responds 200; the
-          # other returns 502 (Prometheus marks the scrape failed during
-          # that interval — expected behaviour with single-GPU swap).
-          - job_name: 'llama-server-iq3-xxs'
-            metrics_path: '/upstream/Qwen3.6-35B-A3B-UD-IQ3_XXS/metrics'
-            static_configs:
-              - targets: ['192.168.10.127:9090']
-            scheme: http
-            scrape_interval: 30s
-            scrape_timeout: 10s
-            metric_relabel_configs:
-              - source_labels: [__name__]
-                regex: 'llamacpp:.+'
-                action: keep
-              - target_label: model
-                replacement: 'Qwen3.6-35B-A3B-UD-IQ3_XXS'
-
-          - job_name: 'llama-server-mtp-q4kxl'
-            metrics_path: '/upstream/Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL/metrics'
-            static_configs:
-              - targets: ['192.168.10.127:9090']
-            scheme: http
-            scrape_interval: 30s
-            scrape_timeout: 10s
-            metric_relabel_configs:
-              - source_labels: [__name__]
-                regex: 'llamacpp:.+'
-                action: keep
-              - target_label: model
-                replacement: 'Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL'
-
     grafana:
       enabled: true
       # If unset, chart generates a random admin password. Retrieve with:
