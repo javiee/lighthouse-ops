@@ -1,4 +1,9 @@
-{ pkgs, unstable, lib, ... }:
+{
+  pkgs,
+  unstable,
+  lib,
+  ...
+}:
 
 # llama-swap — proxy + on-demand model swapper for llama-server.
 # Single endpoint (:9090) that starts/stops llama-server instances based on
@@ -33,16 +38,25 @@
   ];
 
   services.llama-swap = {
-    enable = true;
-    listenAddress = "0.0.0.0";
-    port = 9090;
+     enable = true;
+     package = unstable.packages.${pkgs.system}.llama-swap;
+     listenAddress = "0.0.0.0";
+     port = 9090;
 
     settings = {
-      healthCheckTimeout = 30;   # integer seconds, NOT "30s"
+      healthCheckTimeout = 30; # integer seconds, NOT "30s"
+      metricsMaxInMemory = 1000;
+      performance = {
+        enable = true;
+        every = "15s";
+      };
 
       models = {
         # ── IQ3_XXS: smaller, faster, longer context, no MTP ────────────────
         "Qwen3.6-35B-A3B-UD-IQ3_XXS" = {
+          name = "Qwen3.6-35B-A3B-UD-IQ3_XXS";
+          description = "Smaller, faster, longer context, no MTP";
+          ttl = 300;
           cmd = ''
             /run/current-system/sw/bin/llama-server \
               -m /data/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf \
@@ -63,6 +77,9 @@
 
         # ── Q4_K_XL with MTP: higher quality weights, faster decode via MTP ─
         "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL" = {
+          name = "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL";
+          description = "Higher quality weights, faster decode via MTP";
+          ttl = 300;
           cmd = ''
             /run/current-system/sw/bin/llama-server \
               -m /data/models/Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL.gguf \
@@ -79,6 +96,7 @@
               -np 1 \
               --jinja \
               --host 127.0.0.1 \
+              --metrics \
               --port ''${PORT}
           '';
           aliases = [ "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL" ];
