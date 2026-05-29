@@ -50,8 +50,8 @@ spec:
     replicaCount: 1
 
     image:
-      repository: nousresearch/hermes-agent
-      tag: latest
+      repository: public.ecr.aws/docker.io/nousresearch/hermes-agent
+      tag: v2026.5.29.2
       pullPolicy: Always
 
     persistence:
