@@ -1,0 +1,85 @@
+# ── Flux HelmRelease (uses forked chart from javiee/hermes-agent-helm-chart) ──
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: GitRepository
+metadata:
+  name: hermes-agent-chart
+  namespace: flux-system
+spec:
+  interval: 30m
+  url: https://github.com/javiee/hermes-agent-helm-chart
+  ref:
+    branch: main
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmChart
+metadata:
+  name: hermes-agent
+  namespace: flux-system
+spec:
+  interval: 30m
+  chart: ./
+  sourceRef:
+    kind: GitRepository
+    name: hermes-agent-chart
+  targetNamespace: hermes-agent
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: hermes-agent
+  namespace: flux-system
+spec:
+  interval: 5m
+  targetNamespace: hermes-agent
+  chartRef:
+    kind: HelmChart
+    name: hermes-agent
+  values:
+    replicaCount: 1
+
+    image:
+      repository: ghcr.io/nousresearch/hermes-agent
+      tag: latest
+      pullPolicy: Always
+
+    persistence:
+      enabled: true
+      size: 10Gi
+      mountPath: /root/.hermes
+
+    nodeSelector:
+      hermes/schedule: satellite
+
+    resources:
+      limits:
+        cpu: "2"
+        memory: 4Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+    config:
+      values:
+        model:
+          default: "openrouter/meta-llama/llama-3.1-8b-instruct"
+        terminal:
+          backend: local
+          cwd: /workspace
+          timeout: 180
+        compression:
+          enabled: true
+          threshold: 0.85
+        memory:
+          memory_enabled: true
+          user_profile_enabled: true
+        agent:
+          max_turns: 90
+
+    secrets: {}
+    # secrets:
+    #   OPENROUTER_API_KEY: "sk-or-your-key"
+
+    # StatefulSet-specific: single-writer enforced by chart
+    strategy:
+      type: Recreate
+
