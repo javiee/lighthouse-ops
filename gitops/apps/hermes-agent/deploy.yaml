@@ -60,7 +60,7 @@ spec:
       mountPath: /root/.hermes
 
     nodeSelector:
-      hermes/schedule: satellite
+      kubernetes.io/hostname: lh-satellite
 
     resources:
       limits:
