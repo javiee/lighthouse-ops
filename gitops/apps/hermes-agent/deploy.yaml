@@ -50,8 +50,8 @@ spec:
     replicaCount: 1
 
     image:
-      repository: ghcr.io/nousresearch/hermes-agent
-      tag: latest
+      repository: mirror.gcr.io/nousresearch/hermes-agent
+      tag: v2026.5.29.2
       pullPolicy: Always
 
     persistence:
