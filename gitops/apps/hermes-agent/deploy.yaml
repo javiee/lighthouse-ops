@@ -74,7 +74,9 @@ spec:
     config:
       values:
         model:
-          default: "openrouter/meta-llama/llama-3.1-8b-instruct"
+          default: "Qwen3.6-35B-A3B-APEX-I-Balanced"
+          provider: openai
+          base_url: http://192.168.10.127:9090
         terminal:
           backend: local
           cwd: /workspace
@@ -87,9 +89,6 @@ spec:
           user_profile_enabled: true
         agent:
           max_turns: 90
-        mcp_servers:
-          prometheus:
-            url: http://192.168.10.127:9090
 
     secrets: {}
     # secrets:
