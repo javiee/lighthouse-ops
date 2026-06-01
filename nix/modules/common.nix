@@ -39,7 +39,7 @@ in
 
   nixpkgs.config.allowUnfree = true;
 
-  security.pam.limits = [
+  security.limits = [
     { domain = "*"; item = "memlock"; type = "soft"; value = "unlimited"; }
     { domain = "*"; item = "memlock"; type = "hard"; value = "unlimited"; }
   ];
