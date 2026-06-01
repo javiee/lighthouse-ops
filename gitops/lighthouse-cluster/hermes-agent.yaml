@@ -1,4 +1,15 @@
 ---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: GitRepository
+metadata:
+  name: hermes-agent-branch
+  namespace: flux-system
+spec:
+  interval: 30m
+  url: https://github.com/javiee/lighthouse-ops.git
+  ref:
+    branch: hermes-agent
+---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -8,7 +19,7 @@ spec:
   interval: 10m0s
   sourceRef:
     kind: GitRepository
-    name: flux-system
+    name: hermes-agent-branch
   path: ./gitops/apps/hermes-agent
   prune: true
   wait: true
