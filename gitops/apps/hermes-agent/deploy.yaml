@@ -57,7 +57,7 @@ spec:
     persistence:
       enabled: true
       size: 10Gi
-      mountPath: /root/.hermes
+      mountPath: /data
 
     nodeSelector:
       kubernetes.io/hostname: lh-satellite
@@ -92,6 +92,8 @@ spec:
     secrets: {}
     # secrets:
     #   OPENROUTER_API_KEY: "sk-or-your-key"
+
+    workingDir: /data/home
 
     strategy:
       type: Recreate
