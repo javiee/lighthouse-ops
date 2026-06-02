@@ -25,8 +25,8 @@ spec:
         - name: hermes-agent
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            {{- toYaml .Values.command | nindent 12 }}
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
           env:
             - name: HERMES_HOME
               value: /opt/data
