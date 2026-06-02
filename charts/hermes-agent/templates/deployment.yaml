@@ -16,8 +16,6 @@ spec:
       labels:
         {{- include "hermes-agent.selectorLabels" . | nindent 8 }}
     spec:
-      securityContext:
-        runAsNonRoot: false
       containers:
         - name: hermes-agent
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
