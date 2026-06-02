@@ -59,6 +59,12 @@ spec:
       tag: v2026.5.29.2
       pullPolicy: Always
 
+    env:
+      S6_VERBOSITY: "0"
+      S6_BEHAVIOUR_IF_STAGE2_FAILS: "0"
+      S6_CMD_WAIT_FOR_SERVICES_MAXTIME: "30000"
+      S6_KEEP_ENV: "1"
+
     resources:
       limits:
         cpu: "2"
