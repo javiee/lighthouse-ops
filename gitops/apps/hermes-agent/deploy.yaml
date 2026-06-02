@@ -65,6 +65,15 @@ spec:
       S6_CMD_WAIT_FOR_SERVICES_MAXTIME: "30000"
       S6_KEEP_ENV: "1"
 
+    podSecurityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
+      fsGroupChangePolicy: OnRootMismatch
+      runAsNonRoot: false
+      seccompProfile:
+        type: RuntimeDefault
+
     securityContext:
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: false
