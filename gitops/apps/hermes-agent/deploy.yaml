@@ -50,7 +50,6 @@ spec:
     persistence:
       enabled: true
       size: 10Gi
-      mountPath: /data
 
     nodeSelector:
       kubernetes.io/hostname: lh-satellite
