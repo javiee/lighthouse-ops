@@ -95,5 +95,13 @@ spec:
 
     workingDir: /data/home
 
+    extraVolumes:
+      - name: run
+        emptyDir: {}
+
+    extraVolumeMounts:
+      - name: run
+        mountPath: /run
+
     strategy:
       type: Recreate
