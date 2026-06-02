@@ -104,5 +104,21 @@ spec:
       seccompProfile:
         type: RuntimeDefault
 
+    extraVolumes:
+      - name: run
+        emptyDir: {}
+
+    extraVolumeMounts:
+      - name: run
+        mountPath: /run
+
+    extraInitContainers:
+      - name: fix-run-perms
+        image: busybox:latest
+        command: ["sh", "-c", "chown -R 1000:1000 /run"]
+        volumeMounts:
+          - name: run
+            mountPath: /run
+
     strategy:
       type: Recreate
