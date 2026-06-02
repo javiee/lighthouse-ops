@@ -50,20 +50,19 @@ spec:
       API_SERVER_HOST: "0.0.0.0"
       API_SERVER_KEY: "change-me-in-production"
 
-    config:
-      enabled: true
-      overwrite: true
-      values: |
-        model:
-          default: "Qwen3.6-35B-APEX-I-Balanced"
-          provider: openai
-          base_url: http://localhost:9090
-        terminal:
-          backend: local
-          cwd: /workspace
-          timeout: 180
-        compression:
-          enabled: true
-          threshold: 0.85
-        agent:
-          max_turns: 90
+    # To configure the model, exec into the pod and edit /opt/data/config.yaml:
+    # kubectl exec -it hermes-agent-xxxx -n hermes-agent -- cat << 'EOF' > /opt/data/config.yaml
+    # model:
+    #   default: "Qwen3.6-35B-APEX-I-Balanced"
+    #   provider: openai
+    #   base_url: http://localhost:9090
+    # terminal:
+    #   backend: local
+    #   cwd: /workspace
+    #   timeout: 180
+    # compression:
+    #   enabled: true
+    #   threshold: 0.85
+    # agent:
+    #   max_turns: 90
+    # EOF

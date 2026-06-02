@@ -11,12 +11,6 @@ command:
 
 env: {}
 
-config:
-  enabled: false
-  values: ""
-  soul: ""
-  overwrite: true
-
 persistence:
   enabled: true
   size: 10Gi

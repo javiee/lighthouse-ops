@@ -20,31 +20,6 @@ spec:
         runAsUser: 10000
         runAsGroup: 10000
         fsGroup: 10000
-      {{- if .Values.config.enabled }}
-      initContainers:
-        - name: bootstrap-config
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - /bin/sh
-            - -ec
-          args:
-            - |
-              set -eu
-              mkdir -p /opt/data/home
-              if [ -f /bootstrap/config.yaml ]; then
-                cp /bootstrap/config.yaml /opt/data/config.yaml
-              fi
-              if [ -f /bootstrap/SOUL.md ]; then
-                cp /bootstrap/SOUL.md /opt/data/SOUL.md
-              fi
-          volumeMounts:
-            - name: data
-              mountPath: /opt/data
-            - name: bootstrap
-              mountPath: /bootstrap
-              readOnly: true
-      {{- end }}
       containers:
         - name: hermes-agent
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -77,11 +52,6 @@ spec:
               mountPath: /opt/data
             - name: dshm
               mountPath: /dev/shm
-            {{- if .Values.config.enabled }}
-            - name: bootstrap
-              mountPath: /bootstrap
-              readOnly: true
-            {{- end }}
       volumes:
         - name: data
           {{- if .Values.persistence.enabled }}
@@ -94,11 +64,6 @@ spec:
           emptyDir:
             medium: Memory
             sizeLimit: 1Gi
-        {{- if .Values.config.enabled }}
-        - name: bootstrap
-          configMap:
-            name: {{ include "hermes-agent.fullname" . }}-config
-        {{- end }}
       nodeSelector:
         {{- toYaml .Values.nodeSelector | nindent 8 }}
       {{- with .Values.affinity }}
