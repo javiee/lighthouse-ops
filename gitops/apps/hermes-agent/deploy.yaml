@@ -4,17 +4,6 @@ kind: Namespace
 metadata:
   name: hermes-agent
 ---
-apiVersion: source.toolkit.fluxcd.io/v1beta2
-kind: GitRepository
-metadata:
-  name: hermes-agent-chart
-  namespace: flux-system
-spec:
-  interval: 30m
-  url: https://github.com/javiee/hermes-agent-helm-chart
-  ref:
-    branch: main
----
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmChart
 metadata:
@@ -22,10 +11,10 @@ metadata:
   namespace: flux-system
 spec:
   interval: 30m
-  chart: ./
+  chart: ./charts/hermes-agent
   sourceRef:
     kind: GitRepository
-    name: hermes-agent-chart
+    name: hermes-agent-branch
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -47,47 +36,34 @@ spec:
     remediation:
       retries: 3
   values:
-    persistence:
-      enabled: true
-      size: 10Gi
-
-    nodeSelector:
-      kubernetes.io/hostname: lh-satellite
-
     image:
       repository: mirror.gcr.io/nousresearch/hermes-agent
       tag: v2026.5.29.2
       pullPolicy: Always
 
+    nodeSelector:
+      kubernetes.io/hostname: lh-satellite
+
     env:
-      S6_VERBOSITY: "0"
-      S6_BEHAVIOUR_IF_STAGE2_FAILS: "0"
-      S6_CMD_WAIT_FOR_SERVICES_MAXTIME: "30000"
-      S6_KEEP_ENV: "1"
+      HERMES_DASHBOARD: "1"
+      API_SERVER_ENABLED: "true"
+      API_SERVER_HOST: "0.0.0.0"
+      API_SERVER_KEY: "change-me-in-production"
 
-    podSecurityContext:
-      runAsUser: 0
-      runAsGroup: 0
-      runAsNonRoot: false
-
-    securityContext:
-      allowPrivilegeEscalation: false
-      readOnlyRootFilesystem: false
-      seccompProfile:
-        type: RuntimeDefault
-
-    extraVolumes:
-      - name: run
-        emptyDir: {}
-
-    extraVolumeMounts:
-      - name: run
-        mountPath: /run
-
-    resources:
-      limits:
-        cpu: "2"
-        memory: 4Gi
-      requests:
-        cpu: 500m
-        memory: 1Gi
+    config:
+      enabled: true
+      overwrite: true
+      values: |
+        model:
+          default: "Qwen3.6-35B-APEX-I-Balanced"
+          provider: openai
+          base_url: http://localhost:9090
+        terminal:
+          backend: local
+          cwd: /workspace
+          timeout: 180
+        compression:
+          enabled: true
+          threshold: 0.85
+        agent:
+          max_turns: 90

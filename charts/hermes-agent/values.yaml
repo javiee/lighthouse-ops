@@ -1,0 +1,54 @@
+image:
+  repository: mirror.gcr.io/nousresearch/hermes-agent
+  tag: v2026.5.29.2
+  pullPolicy: Always
+
+replicaCount: 1
+
+command:
+  - gateway
+  - run
+
+env: {}
+
+config:
+  enabled: false
+  values: ""
+  soul: ""
+  overwrite: true
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ""
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: "2"
+    memory: 4Gi
+
+service:
+  type: ClusterIP
+  ports:
+    api: 8642
+    dashboard: 9119
+
+ingress:
+  enabled: false
+  # Example ingress:
+  # enabled: true
+  # className: nginx
+  # hosts:
+  #   - host: hermes.local
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
