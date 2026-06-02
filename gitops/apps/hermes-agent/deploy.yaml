@@ -65,15 +65,6 @@ spec:
       S6_CMD_WAIT_FOR_SERVICES_MAXTIME: "30000"
       S6_KEEP_ENV: "1"
 
-    podSecurityContext:
-      runAsUser: 1000
-      runAsGroup: 1000
-      fsGroup: 1000
-      fsGroupChangePolicy: OnRootMismatch
-      runAsNonRoot: false
-      seccompProfile:
-        type: RuntimeDefault
-
     securityContext:
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: false
@@ -90,17 +81,6 @@ spec:
     extraVolumeMounts:
       - name: run
         mountPath: /run
-
-    extraInitContainers:
-      - name: fix-run-perms
-        image: busybox:latest
-        command: ["sh", "-c", "chown -R 1000:1000 /run"]
-        securityContext:
-          runAsUser: 0
-          runAsGroup: 0
-        volumeMounts:
-          - name: run
-            mountPath: /run
 
     resources:
       limits:
