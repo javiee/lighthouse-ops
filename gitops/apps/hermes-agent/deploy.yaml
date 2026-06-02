@@ -47,13 +47,6 @@ spec:
     remediation:
       retries: 3
   values:
-    replicaCount: 1
-
-    image:
-      repository: mirror.gcr.io/nousresearch/hermes-agent
-      tag: v2026.5.29.2
-      pullPolicy: Always
-
     persistence:
       enabled: true
       size: 10Gi
@@ -69,59 +62,3 @@ spec:
       requests:
         cpu: 500m
         memory: 1Gi
-
-    config:
-      values:
-        model:
-          default: "Qwen3.6-35B-A3B-APEX-I-Balanced"
-          provider: openai
-          base_url: http://192.168.10.127:9090
-        terminal:
-          backend: local
-          cwd: /workspace
-          timeout: 180
-        compression:
-          enabled: true
-          threshold: 0.85
-        memory:
-          memory_enabled: true
-          user_profile_enabled: true
-        agent:
-          max_turns: 90
-
-    secrets: {}
-    # secrets:
-    #   OPENROUTER_API_KEY: "sk-or-your-key"
-
-    workingDir: /data/home
-
-    securityContext:
-      allowPrivilegeEscalation: false
-      readOnlyRootFilesystem: false
-      capabilities:
-        drop:
-          - ALL
-      seccompProfile:
-        type: RuntimeDefault
-
-    extraVolumes:
-      - name: run
-        emptyDir: {}
-
-    extraVolumeMounts:
-      - name: run
-        mountPath: /run
-
-    extraInitContainers:
-      - name: fix-run-perms
-        image: busybox:latest
-        command: ["sh", "-c", "chown -R 1000:1000 /run"]
-        securityContext:
-          runAsUser: 0
-          runAsGroup: 0
-        volumeMounts:
-          - name: run
-            mountPath: /run
-
-    strategy:
-      type: Recreate
