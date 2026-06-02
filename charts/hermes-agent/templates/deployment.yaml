@@ -16,6 +16,7 @@ spec:
       labels:
         {{- include "hermes-agent.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "hermes-agent.fullname" . }}
       securityContext:
         runAsUser: 10000
         runAsGroup: 10000
