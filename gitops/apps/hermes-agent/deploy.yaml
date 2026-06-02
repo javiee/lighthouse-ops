@@ -55,6 +55,11 @@ spec:
     nodeSelector:
       kubernetes.io/hostname: lh-satellite
 
+    image:
+      repository: mirror.gcr.io/nousresearch/hermes-agent
+      tag: v2026.5.29.2
+      pullPolicy: Always
+
     resources:
       limits:
         cpu: "2"
