@@ -95,13 +95,14 @@ spec:
 
     workingDir: /data/home
 
-    extraVolumes:
-      - name: run
-        emptyDir: {}
-
-    extraVolumeMounts:
-      - name: run
-        mountPath: /run
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault
 
     strategy:
       type: Recreate
