@@ -16,11 +16,8 @@ spec:
       labels:
         {{- include "hermes-agent.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: {{ include "hermes-agent.fullname" . }}
       securityContext:
-        runAsUser: 10000
-        runAsGroup: 10000
-        fsGroup: 10000
+        runAsNonRoot: false
       containers:
         - name: hermes-agent
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -46,7 +43,6 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
-            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
           volumeMounts:
             - name: data
