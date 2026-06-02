@@ -116,6 +116,9 @@ spec:
       - name: fix-run-perms
         image: busybox:latest
         command: ["sh", "-c", "chown -R 1000:1000 /run"]
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
         volumeMounts:
           - name: run
             mountPath: /run
