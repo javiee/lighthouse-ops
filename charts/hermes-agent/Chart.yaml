@@ -2,5 +2,5 @@ apiVersion: v2
 name: hermes-agent
 description: A Helm chart for deploying Hermes Agent (nousresearch/hermes-agent)
 type: application
-version: 0.1.1
+version: 0.1.2
 appVersion: "v2026.5.29.2"
