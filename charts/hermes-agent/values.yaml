@@ -6,8 +6,7 @@ image:
 replicaCount: 1
 
 args:
-  - gateway
-  - run
+  - dashboard
   - --insecure
 
 env: {}
