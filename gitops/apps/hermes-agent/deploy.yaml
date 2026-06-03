@@ -41,6 +41,11 @@ spec:
       tag: v2026.5.29.2
       pullPolicy: Always
 
+    args:
+      - gateway
+      - run
+      - --insecure
+
     nodeSelector:
       kubernetes.io/hostname: lh-satellite
 
