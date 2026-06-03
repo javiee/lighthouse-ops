@@ -21,7 +21,7 @@ spec:
               service:
                 name: {{ include "hermes-agent.fullname" $ }}
                 port:
-                  number: {{ $.Values.service.ports.api }}
+                  number: {{ index $.Values.service.ports ((.port | default "api")) }}
           {{- end }}
     {{- end }}
 {{- end }}
