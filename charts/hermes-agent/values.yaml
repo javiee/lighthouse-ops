@@ -6,7 +6,6 @@ image:
 replicaCount: 1
 
 args:
-  - --insecure
   - gateway
   - run
 
