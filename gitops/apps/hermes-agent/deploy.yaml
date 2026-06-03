@@ -46,8 +46,9 @@ spec:
 
     env:
       HERMES_DASHBOARD: "1"
+      HERMES_DASHBOARD_HOST: "127.0.0.1"
       API_SERVER_ENABLED: "true"
-      API_SERVER_HOST: "0.0.0.0"
+      API_SERVER_HOST: "127.0.0.1"
       API_SERVER_KEY: "change-me-in-production"
 
     # To configure the model, exec into the pod and edit /opt/data/config.yaml:
