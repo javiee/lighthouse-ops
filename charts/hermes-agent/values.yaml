@@ -8,6 +8,7 @@ replicaCount: 1
 args:
   - gateway
   - run
+  - --insecure
 
 env: {}
 
