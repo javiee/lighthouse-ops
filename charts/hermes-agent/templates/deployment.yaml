@@ -29,6 +29,23 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            {{- range $key, $value := .Values.secretEnv }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $value.secretKeyRef.name }}
+                  key: {{ $value.secretKeyRef.key }}
+            {{- end }}
+            {{- if .Values.telegram }}
+            {{- if .Values.telegram.allowed_users }}
+            - name: TELEGRAM_ALLOWED_USERS
+              value: {{ .Values.telegram.allowed_users | quote }}
+            {{- end }}
+            {{- if .Values.telegram.home_channel }}
+            - name: TELEGRAM_HOME_CHANNEL
+              value: {{ .Values.telegram.home_channel | quote }}
+            {{- end }}
+            {{- end }}
           ports:
             - name: api
               containerPort: {{ .Values.service.ports.api }}

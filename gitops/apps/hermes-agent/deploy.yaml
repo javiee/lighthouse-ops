@@ -4,6 +4,16 @@ kind: Namespace
 metadata:
   name: hermes-agent
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hermes-agent
+  namespace: hermes-agent
+type: Opaque
+stringData:
+  TELEGRAM_BOT_TOKEN: "7218524100:AAHX6Kw0Q6yiyLLXnpKajOOkPsolFs48UPc"
+  TELEGRAM_CHAT_ID: "612246271"
+---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmChart
 metadata:
@@ -51,6 +61,20 @@ spec:
        API_SERVER_ENABLED: "true"
        API_SERVER_HOST: "0.0.0.0"
        API_SERVER_KEY: "change-me-in-production"
+
+    secretEnv:
+       TELEGRAM_BOT_TOKEN:
+         secretKeyRef:
+           name: hermes-agent
+           key: TELEGRAM_BOT_TOKEN
+       TELEGRAM_CHAT_ID:
+         secretKeyRef:
+           name: hermes-agent
+           key: TELEGRAM_CHAT_ID
+
+    telegram:
+       allowed_users: "612246271"
+       home_channel: "612246271"
 
     ingress:
       enabled: true
