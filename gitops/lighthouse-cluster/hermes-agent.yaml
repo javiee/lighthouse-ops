@@ -5,7 +5,7 @@ metadata:
   name: hermes-agent-branch
   namespace: flux-system
 spec:
-  interval: 30m
+  interval: 1m
   url: https://github.com/javiee/lighthouse-ops.git
   ref:
     branch: hermes-agent
@@ -16,7 +16,7 @@ metadata:
   name: hermes-agent
   namespace: flux-system
 spec:
-  interval: 10m0s
+  interval: 1m0s
   sourceRef:
     kind: GitRepository
     name: hermes-agent-branch

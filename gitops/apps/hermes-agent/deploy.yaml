@@ -4,28 +4,17 @@ kind: Namespace
 metadata:
   name: hermes-agent
 ---
-apiVersion: source.toolkit.fluxcd.io/v1beta2
-kind: GitRepository
-metadata:
-  name: hermes-agent-chart
-  namespace: flux-system
-spec:
-  interval: 30m
-  url: https://github.com/javiee/hermes-agent-helm-chart
-  ref:
-    branch: main
----
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmChart
 metadata:
   name: hermes-agent
   namespace: flux-system
 spec:
-  interval: 30m
-  chart: ./
+  interval: 1m
+  chart: ./charts/hermes-agent
   sourceRef:
     kind: GitRepository
-    name: hermes-agent-chart
+    name: hermes-agent-branch
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -33,7 +22,7 @@ metadata:
   name: hermes-agent
   namespace: hermes-agent
 spec:
-  interval: 5m
+  interval: 1m
   chartRef:
     kind: HelmChart
     name: hermes-agent
@@ -41,59 +30,57 @@ spec:
   install:
     crds: CreateReplace
     remediation:
-      retries: 3
+      retries: 0
   upgrade:
     crds: CreateReplace
     remediation:
-      retries: 3
+      retries: 0
   values:
-    replicaCount: 1
-
     image:
       repository: mirror.gcr.io/nousresearch/hermes-agent
       tag: v2026.5.29.2
       pullPolicy: Always
 
-    persistence:
-      enabled: true
-      size: 10Gi
-      mountPath: /data
-
     nodeSelector:
       kubernetes.io/hostname: lh-satellite
 
-    resources:
-      limits:
-        cpu: "2"
-        memory: 4Gi
-      requests:
-        cpu: 500m
-        memory: 1Gi
+    env:
+       HERMES_DASHBOARD: "1"
+       HERMES_DASHBOARD_HOST: "0.0.0.0"
+       HERMES_DASHBOARD_INSECURE: "1"
+       API_SERVER_ENABLED: "true"
+       API_SERVER_HOST: "0.0.0.0"
+       API_SERVER_KEY: "change-me-in-production"
 
-    config:
-      values:
-        model:
-          default: "Qwen3.6-35B-A3B-APEX-I-Balanced"
-          provider: openai
-          base_url: http://192.168.10.127:9090
-        terminal:
-          backend: local
-          cwd: /workspace
-          timeout: 180
-        compression:
-          enabled: true
-          threshold: 0.85
-        memory:
-          memory_enabled: true
-          user_profile_enabled: true
-        agent:
-          max_turns: 90
+    telegram:
+       allowed_users: "612246271"
+       home_channel: "612246271"
 
-    secrets: {}
-    # secrets:
-    #   OPENROUTER_API_KEY: "sk-or-your-key"
+    ingress:
+      enabled: true
+      className: traefik
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: web
+      hosts:
+        - host: hermes.lighthouse.local
+          paths:
+            - path: /
+              pathType: Prefix
+              port: dashboard
 
-    workingDir: /data/home
-
-    strategy:
-      type: Recreate
+    # To configure the model, exec into the pod and edit /opt/data/config.yaml:
+    # kubectl exec -it hermes-agent-xxxx -n hermes-agent -- cat << 'EOF' > /opt/data/config.yaml
+    # model:
+    #   default: "Qwen3.6-35B-APEX-I-Balanced"
+    #   provider: openai
+    #   base_url: http://localhost:9090
+    # terminal:
+    #   backend: local
+    #   cwd: /workspace
+    #   timeout: 180
+    # compression:
+    #   enabled: true
+    #   threshold: 0.85
+    # agent:
+    #   max_turns: 90
+    # EOF
