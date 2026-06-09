@@ -39,6 +39,7 @@
   systemd.tmpfiles.rules = [
     "d /data           0755 jcaro users -"
     "d /data/models    0755 jcaro users -"
+    "d /data/cache     0755 jcaro users -"
   ];
 
   services.llama-swap = {
@@ -75,7 +76,8 @@
               --metrics \
               --host 127.0.0.1 \
               --port ''${PORT} \
-              --no-mmap
+              --no-mmap \
+              --slot-save-path /data/cache/
           '';
           aliases = [ "Qwen3.6-35B-A3B-UD-IQ3_XXS" ];
         };
@@ -84,7 +86,7 @@
         "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL" = {
           name = "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL";
           description = "Higher quality weights, faster decode via MTP";
-          ttl = 900;
+          ttl = 3600;
           cmd = ''
             /run/current-system/sw/bin/llama-server \
               -m /data/models/Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL.gguf \
@@ -102,12 +104,76 @@
               --jinja \
               --host 127.0.0.1 \
               --metrics \
-              --port ''${PORT}
+              --port ''${PORT} \
+              --slot-save-path /data/cache/
           '';
           aliases = [ "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL" ];
         };
+
+        # ── APEX I-Balanced: large context (192k), high GPU layer count ──────
+        "Qwen3.6-35B-A3B-APEX-I-Balanced" = {
+          name = "Qwen3.6-35B-A3B-APEX-I-Balanced";
+          description = "APEX I-Balanced quantization, 192k context";
+          ttl = 3600;
+          cmd = ''
+            /run/current-system/sw/bin/llama-server \
+              -m /data/models/Qwen3.6-35B-A3B-APEX-I-Balanced.gguf \
+              --alias Qwen3.6-35B-A3B-APEX-I-Balanced \
+              -c 192640 \
+              -ngl auto \
+              --n-cpu-moe 30 \
+              --cache-type-k turbo4 --cache-type-v turbo4 \
+              -fa on \
+              --batch-size 2048 \
+              -np 1 \
+              --ubatch-size 512 \
+              --threads 6 \
+              --cont-batching \
+              --no-mmap \
+              --mlock \
+              --timeout 300 \
+              --jinja \
+              --metrics \
+              --host 127.0.0.1 \
+              --port ''${PORT} \
+              --slot-save-path /data/cache/
+          '';
+          aliases = [ "Qwen3.6-35B-A3B-APEX-I-Balanced" ];
+        };
       };
     };
+  };
+
+  # Override the upstream module's aggressive sandboxing — llama-swap reads
+  # /proc/meminfo (blocked by ProcSubset=pid) and we want it to access models
+  # in /data/models (blocked by ProtectSystem=strict).
+  #
+  # We apply mkForce per-attribute so the upstream serviceConfig (ExecStart,
+  # User, etc.) is preserved. Wrapping the whole attrset in mkForce REPLACES
+  # the entire serviceConfig, killing ExecStart — which is what just broke
+  # the unit.
+  systemd.services.llama-swap.serviceConfig = {
+    ProtectHome           = lib.mkForce false;
+    ProtectSystem         = lib.mkForce false;
+    ProtectClock          = lib.mkForce false;
+    ProtectControlGroups  = lib.mkForce false;
+    ProtectKernelLogs     = lib.mkForce false;
+    ProtectKernelModules  = lib.mkForce false;
+    ProtectKernelTunables = lib.mkForce false;
+    ProtectHostname       = lib.mkForce false;
+    ProtectProc           = lib.mkForce "default";   # was "no-invoke" — invalid value
+    ProcSubset            = lib.mkForce "all";       # exposes /proc/meminfo etc.
+    PrivateDevices        = lib.mkForce false;
+    PrivateTmp            = lib.mkForce false;
+    PrivateMounts         = lib.mkForce false;
+    PrivateUsers          = lib.mkForce false;
+    MemoryDenyWriteExecute = lib.mkForce false;
+    LockPersonality       = lib.mkForce false;
+    RestrictNamespaces    = lib.mkForce false;
+    RestrictRealtime      = lib.mkForce false;
+    RestrictSUIDSGID      = lib.mkForce false;
+    NoNewPrivileges       = lib.mkForce false;
+    LimitMEMLOCK          = lib.mkForce "infinity";
   };
 
   # Only llama-swap is publicly reachable; inner llama-server instances

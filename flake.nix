@@ -11,9 +11,10 @@
     };
 
     opencode = {
-      url = "github:sst/opencode/v1.15.6";
-      # opencode 1.15.6 needs bun >= 1.3.14. Our nixos-25.11 has 1.3.3,
-      # opencode's own lock has 1.3.13. nixpkgs-unstable has new-enough bun.
+      url = "github:sst/opencode/v1.16.2";
+      # opencode asserts a minimum bun version at build time that can be newer
+      # than any nixpkgs ships; we patch the check out below. nixpkgs-unstable
+      # has the newest bun available.
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
   };
