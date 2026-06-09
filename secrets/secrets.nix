@@ -23,4 +23,5 @@ in
 {
   "k3s-token.age".publicKeys = allUsers ++ allHosts;
   "github-token.age".publicKeys = allUsers ++ allHosts;
+  "ngrok-authtoken.age".publicKeys = allUsers ++ allHosts;
 }
