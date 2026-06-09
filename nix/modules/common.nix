@@ -39,11 +39,6 @@ in
 
   nixpkgs.config.allowUnfree = true;
 
-  security.pam.loginLimits = [
-    { domain = "*"; item = "memlock"; type = "soft"; value = "unlimited"; }
-    { domain = "*"; item = "memlock"; type = "hard"; value = "unlimited"; }
-  ];
-
   # Also export the env var so `nix run`, `nix shell`, etc. honour unfree
   # licenses without --impure or per-command setting.
   environment.sessionVariables.NIXPKGS_ALLOW_UNFREE = "1";

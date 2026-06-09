@@ -17,5 +17,11 @@
 
   networking.hostName = hostname;
 
+  # Allow llama-server to pin model weights + KV cache in RAM (no swap).
+  security.pam.loginLimits = [
+    { domain = "*"; item = "memlock"; type = "soft"; value = "unlimited"; }
+    { domain = "*"; item = "memlock"; type = "hard"; value = "unlimited"; }
+  ];
+
   system.stateVersion = "25.11";
 }
