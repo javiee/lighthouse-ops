@@ -17,5 +17,9 @@ spec:
       protocol: TCP
       name: dashboard
     {{- end }}
+    - port: {{ .Values.service.ports.webhooks }}
+      targetPort: webhooks
+      protocol: TCP
+      name: webhooks
   selector:
     {{- include "hermes-agent.selectorLabels" . | nindent 4 }}

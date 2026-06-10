@@ -1,14 +1,25 @@
 ---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: ngrok-branch
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/javiee/lighthouse-ops.git
+  ref:
+    branch: al-ngrok-setup
+---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: ngrok
   namespace: flux-system
 spec:
-  interval: 10m0s
+  interval: 1m0s
   sourceRef:
     kind: GitRepository
-    name: flux-system
+    name: ngrok-branch
   path: ./gitops/apps/ngrok
   prune: true
   wait: true
