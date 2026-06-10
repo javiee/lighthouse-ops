@@ -1,0 +1,37 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: ngrok
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://ngrok.github.io/helm-charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ngrok-operator
+  namespace: ngrok-operator
+spec:
+  interval: 1h
+  chartRef:
+    kind: HelmRepository
+    name: ngrok
+    namespace: flux-system
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    credentials:
+      secret:
+        name: ngrok-credentials
+      apiKey: ""
+      authtoken: ""
+    ingress:
+      enabled: true

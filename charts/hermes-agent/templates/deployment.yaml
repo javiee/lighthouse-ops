@@ -55,6 +55,9 @@ spec:
               containerPort: {{ .Values.service.ports.dashboard }}
               protocol: TCP
             {{- end }}
+            - name: webhooks
+              containerPort: {{ .Values.service.ports.webhooks }}
+              protocol: TCP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:

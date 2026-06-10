@@ -9,7 +9,15 @@ args:
   - gateway
   - run
 
-env: {}
+env:
+  HERMES_DASHBOARD: "1"
+  HERMES_DASHBOARD_HOST: "0.0.0.0"
+  HERMES_DASHBOARD_INSECURE: "1"
+  API_SERVER_ENABLED: "true"
+  API_SERVER_HOST: "0.0.0.0"
+  API_SERVER_KEY: "change-me-in-production"
+  WEBHOOK_ENABLED: "true"
+  WEBHOOK_PORT: "8644"
 
 persistence:
   enabled: true
@@ -29,6 +37,7 @@ service:
   ports:
     api: 8642
     dashboard: 9119
+    webhooks: 8644
 
 ingress:
   enabled: false
