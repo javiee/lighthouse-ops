@@ -1,0 +1,8 @@
+apiVersion: ngrok.k8s.ngrok.com/v1alpha1
+kind: AgentEndpoint
+metadata:
+  name: hermes-webhook-endpoint
+  namespace: ngrok-operator
+spec:
+  upstream:
+    url: k8s://hermes-agent/hermes-agent:8644
