@@ -8,6 +8,20 @@ spec:
   interval: 1h
   url: https://ngrok.github.io/helm-charts
 ---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmChart
+metadata:
+  name: ngrok-operator
+  namespace: flux-system
+spec:
+  interval: 1h
+  chart: ngrok-operator
+  version: "0.23.0"
+  sourceRef:
+    kind: HelmRepository
+    name: ngrok
+    namespace: flux-system
+---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -16,8 +30,8 @@ metadata:
 spec:
   interval: 1h
   chartRef:
-    kind: HelmRepository
-    name: ngrok
+    kind: HelmChart
+    name: ngrok-operator
     namespace: flux-system
   install:
     crds: CreateReplace
