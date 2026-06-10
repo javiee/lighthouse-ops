@@ -8,7 +8,7 @@ spec:
   interval: 1m
   url: https://github.com/javiee/lighthouse-ops.git
   ref:
-    branch: hermes-agent
+    branch: main
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
