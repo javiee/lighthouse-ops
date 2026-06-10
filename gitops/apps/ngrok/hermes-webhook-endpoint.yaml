@@ -4,6 +4,6 @@ metadata:
   name: hermes-webhook-endpoint
   namespace: ngrok-operator
 spec:
-  url: ""
+  url: https://unroasted-deviation-unruffled.ngrok-free.dev
   upstream:
     url: k8s://hermes-agent/hermes-agent:8644
