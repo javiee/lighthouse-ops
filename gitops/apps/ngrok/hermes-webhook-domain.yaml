@@ -1,0 +1,7 @@
+apiVersion: ingress.k8s.ngrok.com/v1alpha1
+kind: Domain
+metadata:
+  name: hermes-webhook-domain
+  namespace: ngrok-operator
+spec:
+  domain: unroasted-deviation-unruffled.ngrok-free.dev
