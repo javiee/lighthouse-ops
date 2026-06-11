@@ -1,10 +1,12 @@
 name: Build and Push Docker Images
 
 on:
-  pull_request_target:
-    types: [closed]
+  push:
+    branches:
+      - main
     paths:
       - 'docker/**'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -18,12 +20,9 @@ jobs:
       contents: read
       packages: write
 
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Detect changed Dockerfiles
         id: filter
