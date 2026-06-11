@@ -83,32 +83,68 @@
         };
 
         # ── Q4_K_XL with MTP: higher quality weights, faster decode via MTP ─
-        "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL" = {
-          name = "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL";
-          description = "Higher quality weights, faster decode via MTP";
-          ttl = 3600;
-          cmd = ''
+         "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL" = {
+           name = "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL";
+           description = "Higher quality weights, faster decode via MTP";
+           ttl = 3600;
+           cmd = ''
+             /run/current-system/sw/bin/llama-server \
+               -m /data/models/Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL.gguf \
+               --spec-type draft-mtp \
+               -c 65536 \
+               --n-cpu-moe 35 \
+               -ngl auto \
+               -fa on \
+               --spec-draft-n-max 2 \
+               --cache-type-k-draft q8_0 \
+               --cache-type-v-draft q8_0 \
+               --cache-type-k q8_0 \
+               --cache-type-v q8_0 \
+               -np 1 \
+               --jinja \
+               --host 127.0.0.1 \
+               --metrics \
+               --port ''${PORT} \
+               --chat-template-kwargs '{"preserve_thinking": true}' \
+               --slot-save-path /data/cache/
+           '';
+           aliases = [ "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL" ];
+         };
+
+         # ── Q4_K_XL with MTP: optimized inference, fixed GPU layers ──────────
+         "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL-v2" = {
+           name = "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL-v2";
+           description = "Optimized inference with fixed GPU layers and turbo cache";
+           ttl = 3600;
+         cmd = ''
             /run/current-system/sw/bin/llama-server \
               -m /data/models/Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL.gguf \
               --spec-type draft-mtp \
-              -c 65536 \
-              --n-cpu-moe 35 \
-              -ngl auto \
-              -fa on \
-              --spec-draft-n-max 2 \
-              --cache-type-k-draft q8_0 \
-              --cache-type-v-draft q8_0 \
-              --cache-type-k q8_0 \
-              --cache-type-v q8_0 \
-              -np 1 \
-              --jinja \
+              -c 192640 \
+              --n-gpu-layers 99 \
+              --n-cpu-moe 30 \
+              --cache-type-k turbo4 \
+              --cache-type-v turbo4 \
+              --flash-attn on \
+              --batch-size 2048 \
+              --ubatch-size 256 \
+              --threads 6 \
+              --parallel 1 \
+              --cont-batching \
+              --no-mmap \
+              --mlock \
+              --temp 0.2 \
+              --top-p 0.95 \
+              --min-p 0.05 \
+              --top-k 20 \
               --host 127.0.0.1 \
               --metrics \
               --port ''${PORT} \
+              --chat-template-kwargs '{"preserve_thinking": true}' \
               --slot-save-path /data/cache/
           '';
-          aliases = [ "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL" ];
-        };
+           aliases = [ "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL-v2" ];
+         };
 
         # ── APEX I-Balanced: large context (192k), high GPU layer count ──────
         "Qwen3.6-35B-A3B-APEX-I-Balanced" = {
@@ -136,6 +172,7 @@
               --metrics \
               --host 127.0.0.1 \
               --port ''${PORT} \
+              --chat-template-kwargs '{"preserve_thinking": true}' \
               --slot-save-path /data/cache/
           '';
           aliases = [ "Qwen3.6-35B-A3B-APEX-I-Balanced" ];
