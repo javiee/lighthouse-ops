@@ -6,4 +6,5 @@ metadata:
 spec:
   url: https://unroasted-deviation-unruffled.ngrok-free.dev
   upstream:
-    url: k8s://hermes-agent/hermes-agent:8644
+    protocol: http1
+    url: http://hermes-agent.hermes-agent.svc.cluster.local:8644
