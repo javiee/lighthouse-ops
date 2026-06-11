@@ -37,7 +37,7 @@ spec:
       retries: 0
   values:
     image:
-      repository: mirror.gcr.io/nousresearch/hermes-agent
+      repository: ghcr.io/javiee/lighthouse-ops/hermes
       tag: v2026.5.29.2
       pullPolicy: Always
 

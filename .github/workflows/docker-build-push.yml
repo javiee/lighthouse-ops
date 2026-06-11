@@ -44,7 +44,7 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
           DOCKERFILE="docker/hermes/Dockerfile"
-          TAG="1.0.0-${{ env.HERMES_VERSION }}"
+          TAG="${{ env.HERMES_VERSION }}"
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/hermes"
           echo "========================================"
           echo "Building hermes -> $IMAGE:$TAG"
