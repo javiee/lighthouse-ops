@@ -1,0 +1,56 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    paths:
+      - 'docker/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: javiee/lighthouse-ops
+  HERMES_VERSION: v2026.5.29.2
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect changed Dockerfiles
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            hermes:
+              - 'docker/hermes/**'
+
+      - name: Build and push images
+        if: steps.filter.outputs.hermes == 'true'
+        run: |
+          # Set up Docker Buildx
+          docker buildx create --name builder --use
+          docker buildx inspect --bootstrap > /dev/null
+
+          # Login to GHCR
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          DOCKERFILE="docker/hermes/Dockerfile"
+          TAG="1.0.0-${{ env.HERMES_VERSION }}"
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/hermes"
+          echo "========================================"
+          echo "Building hermes -> $IMAGE:$TAG"
+          echo "========================================"
+          docker buildx build \
+            -f "$DOCKERFILE" \
+            --push \
+            -t "$IMAGE:$TAG" \
+            -t "$IMAGE:latest" \
+            --cache-from=type=gha \
+            --cache-to=type=gha,mode=max \
+            .
+          echo "Successfully pushed $IMAGE:$TAG and $IMAGE:latest"
