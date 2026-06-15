@@ -27,6 +27,10 @@ The `--build-host` flag builds on the Linux target, not the Mac.
 - Full workflow: `secrets/HELP.md`
 - Plaintext lives in `/run/agenix/<host>` (tmpfs). Survives nothing past reboot.
 
+## Kubernetes secrets
+
+- **NEVER create k8s secrets in the repo.** Do not add Secret YAML templates to Helm charts or check in any secret manifests. Manage secrets externally (sealed-secrets, external-secrets operator, or manual `kubectl create secret`). Reference them in charts via `secretEnv` or `valueFrom.secretKeyRef` only.
+
 ## K3s gotchas
 
 - After changing runtime config (CDI, nvidia), **delete the cached containerd config and restart**:

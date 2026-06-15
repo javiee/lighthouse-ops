@@ -19,6 +19,12 @@ env:
   WEBHOOK_ENABLED: "true"
   WEBHOOK_PORT: "8644"
 
+secretEnv:
+  GITHUB_TOKEN:
+    secretKeyRef:
+      name: hermes-github-token
+      key: github-token
+
 persistence:
   enabled: true
   size: 10Gi
