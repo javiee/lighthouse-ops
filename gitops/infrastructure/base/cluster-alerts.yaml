@@ -1,0 +1,67 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cluster-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: node-alerts
+      rules:
+        - alert: NodeDown
+          expr: up{job="node-exporter"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Node {{ $labels.instance }} is down"
+            description: "Node exporter on {{ $labels.instance }} ({{ $labels.nodename }}) has been unreachable for 2 minutes."
+
+        - alert: NodeHighMemory
+          expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage on {{ $labels.nodename }}"
+            description: "Memory usage on {{ $labels.nodename }} is at {{ $value }}%."
+
+        - alert: NodeHighDiskUsage
+          expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High disk usage on {{ $labels.nodename }}"
+            description: "Root filesystem on {{ $labels.nodename }} is at {{ $value }}% free."
+
+    - name: cluster-alerts
+      rules:
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total[15m]) * 60 * 5 > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.pod }} in {{ $labels.namespace }} is crash looping"
+            description: "Pod {{ $labels.pod }} ({{ $labels.namespace }}) has been restarting frequently."
+
+        - alert: PodNotReady
+          expr: kube_pod_status_ready{condition="true"} == 0 and kube_pod_status_scheduled{condition="true"} == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.pod }} in {{ $labels.namespace }} is not ready"
+            description: "Pod {{ $labels.pod }} has been scheduled but not ready for 10 minutes."
+
+        - alert: ClusterHighCPU
+          expr: sum(rate(container_cpu_usage_seconds_total{container!="", namespace=~"monitoring|kube-system"}[5m])) by (namespace) * 100 > 80
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU usage in {{ $labels.namespace }}"
+            description: "Namespace {{ $labels.namespace }} is using {{ $value }}% cluster CPU."

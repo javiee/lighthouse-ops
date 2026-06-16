@@ -115,14 +115,49 @@ spec:
     kubeStateMetrics:
       enabled: true
 
-    # ── Alertmanager: off for now (re-enable when you want alerts) ────────
+    # ── Alertmanager ──────────────────────────────────────────────────────
     alertmanager:
-      enabled: false
+      enabled: true
+      alertmanagerSpec:
+        storage:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: local-path
+              accessModes: ["ReadWriteOnce"]
+              resources:
+                requests:
+                  storage: 1Gi
+        additionalConfig:
+          global:
+            resolve_timeout: 5m
+          route:
+            receiver: telegram-alerts
+            group_by: ['alertname', 'namespace']
+            group_wait: 30s
+            group_interval: 5m
+            repeat_interval: 4h
+            routes:
+              - receiver: telegram-alerts
+                matchers:
+                  - severity =~ "critical|warning"
+          receivers:
+            - name: telegram-alerts
+              telegram_configs:
+                - send_resolved: true
+                  api_key_file: /etc/alertmanager/secrets/alertmanager-telegram/telegram-bot-token
+                  chat_id_file: /etc/alertmanager/secrets/alertmanager-telegram/chat-id
+        additionalSecrets:
+          - name: alertmanager-telegram
+            mountPath: /etc/alertmanager/secrets/alertmanager-telegram
+      alertmanagerConfigDefault:
+        config:
+          receivers:
+            - name: 'null'
 
     defaultRules:
       create: true
       rules:
-        alertmanager: false   # off since alertmanager is disabled
+        alertmanager: true
 
     # ── k3s quirks ────────────────────────────────────────────────────────
     # k3s bundles controller-manager and scheduler inside the main k3s process,
