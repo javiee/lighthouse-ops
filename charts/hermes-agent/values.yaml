@@ -18,6 +18,7 @@ env:
   API_SERVER_KEY: "change-me-in-production"
   WEBHOOK_ENABLED: "true"
   WEBHOOK_PORT: "8644"
+  TERMINAL_ENV: "local"
 
 secretEnv:
   GITHUB_TOKEN:
