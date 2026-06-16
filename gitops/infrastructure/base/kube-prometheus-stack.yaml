@@ -118,6 +118,15 @@ spec:
     # ── Alertmanager ──────────────────────────────────────────────────────
     alertmanager:
       enabled: true
+      ingress:
+        enabled: true
+        ingressClassName: traefik
+        annotations:
+          traefik.ingress.kubernetes.io/router.entrypoints: web
+        hosts:
+          - alerts.lighthouse.local
+        paths:
+          - /
       alertmanagerSpec:
         storage:
           volumeClaimTemplate:
