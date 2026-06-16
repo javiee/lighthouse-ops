@@ -149,10 +149,6 @@ spec:
         additionalSecrets:
           - name: alertmanager-telegram
             mountPath: /etc/alertmanager/secrets/alertmanager-telegram
-      alertmanagerConfigDefault:
-        config:
-          receivers:
-            - name: 'null'
 
     defaultRules:
       create: true
