@@ -9,23 +9,6 @@ args:
   - gateway
   - run
 
-env:
-  HERMES_DASHBOARD: "1"
-  HERMES_DASHBOARD_HOST: "0.0.0.0"
-  HERMES_DASHBOARD_INSECURE: "1"
-  API_SERVER_ENABLED: "true"
-  API_SERVER_HOST: "0.0.0.0"
-  API_SERVER_KEY: "change-me-in-production"
-  WEBHOOK_ENABLED: "true"
-  WEBHOOK_PORT: "8644"
-  TERMINAL_ENV: "local"
-
-secretEnv:
-  GITHUB_TOKEN:
-    secretKeyRef:
-      name: hermes-github-token
-      key: github-token
-
 persistence:
   enabled: true
   size: 10Gi
