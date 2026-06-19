@@ -113,37 +113,40 @@
 
          # ── Q4_K_XL with MTP: optimized inference, fixed GPU layers ──────────
          "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL-v2" = {
-           name = "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL-v2";
+           name = "Qwen3.6-35B-A3B-MTP-V2";
            description = "Optimized inference with fixed GPU layers and turbo cache";
            ttl = 3600;
-         cmd = ''
-            /run/current-system/sw/bin/llama-server \
-              -m /data/models/Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL.gguf \
-              --spec-type draft-mtp \
-              -c 192640 \
-              --n-gpu-layers 99 \
-              --n-cpu-moe 30 \
-              --cache-type-k turbo4 \
-              --cache-type-v turbo4 \
-              --flash-attn on \
-              --batch-size 2048 \
-              --ubatch-size 256 \
-              --threads 6 \
-              --parallel 1 \
-              --cont-batching \
-              --no-mmap \
-              --mlock \
-              --temp 0.2 \
-              --top-p 0.95 \
-              --min-p 0.05 \
-              --top-k 20 \
-              --host 127.0.0.1 \
-              --metrics \
-              --port ''${PORT} \
-              --chat-template-kwargs '{"preserve_thinking": true}' \
-              --slot-save-path /data/cache/
-          '';
-           aliases = [ "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL-v2" ];
+           cmd = ''
+             /run/current-system/sw/bin/llama-server \
+               -m /data/models/Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL.gguf \
+               --spec-type draft-mtp \
+               -c 192640\
+               --n-cpu-moe 40 \
+               -ngl auto \
+               -fa on \
+               --spec-draft-n-max 2 \
+               --cache-type-k turbo4 \
+               --cache-type-v turbo4 \
+               --flash-attn on \
+               --batch-size 2048 \
+               --ubatch-size 256 \
+               --threads 6 \
+               -np 1 \
+               --cont-batching \
+               --no-mmap \
+               --mlock \
+               --temp 0.2 \
+               --top-p 0.95 \
+               --min-p 0.05 \
+               --top-k 20 \
+               --jinja \
+               --host 127.0.0.1 \
+               --metrics \
+               --port ''${PORT} \
+               --chat-template-kwargs '{"preserve_thinking": true}' \
+               --slot-save-path /data/cache/
+           '';
+           aliases = [ "Qwen3.6-35B-A3B-MTP-V2" ];
          };
 
         # ── APEX I-Balanced: large context (192k), high GPU layer count ──────
@@ -216,4 +219,20 @@
   # Only llama-swap is publicly reachable; inner llama-server instances
   # listen on 127.0.0.1 with ports llama-swap assigns dynamically.
   networking.firewall.allowedTCPPorts = [ 9090 ];
+
+  # Proactive OOM protection. The mlock'd model weights + KV cache can't be
+  # reclaimed under pressure, so the in-kernel OOM killer is too slow and the
+  # box thrashes/freezes. earlyoom kills the biggest hog *before* the freeze,
+  # keeping the control plane (sshd/k3s/tailscale) alive.
+  services.earlyoom = {
+    enable = true;
+    freeMemThreshold = 5;     # act when <5% RAM free
+    freeSwapThreshold = 100;  # no swap on this host, so this is effectively RAM-only
+    enableNotifications = false;
+    extraArgs = [
+      # Prefer to sacrifice the model server, never the control plane.
+      "--prefer" "^(llama-server|ollama)$"
+      "--avoid" "^(sshd|k3s|systemd|tailscaled|containerd)$"
+    ];
+  };
 }

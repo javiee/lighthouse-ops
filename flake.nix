@@ -11,7 +11,7 @@
     };
 
     opencode = {
-      url = "github:sst/opencode/v1.16.2";
+      url = "github:anomalyco/opencode/v1.17.8";
       # opencode asserts a minimum bun version at build time that can be newer
       # than any nixpkgs ships; we patch the check out below. nixpkgs-unstable
       # has the newest bun available.
