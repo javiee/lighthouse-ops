@@ -21,6 +21,13 @@ in
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
+  # Safety net: a real kernel panic should reboot and self-heal, not hang.
+  boot.kernel.sysctl = {
+    "kernel.panic" = 10;          # reboot 10s after a panic
+    "kernel.panic_on_oops" = 1;   # treat an oops as a panic
+    # "vm.panic_on_oom" = 1;      # would panic on OOM instead of killing a process
+  };
+
   time.timeZone = "Europe/Madrid";
   i18n.defaultLocale = "en_US.UTF-8";
   i18n.extraLocaleSettings = {
