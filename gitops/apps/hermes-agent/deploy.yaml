@@ -54,12 +54,17 @@ spec:
        WEBHOOK_ENABLED: "true"
        WEBHOOK_PORT: "8644"
        TERMINAL_ENV: "local"
+       HASS_URL: "http://192.168.10.65:8123"
 
     secretEnv:
       GITHUB_TOKEN:
         secretKeyRef:
           name: hermes-github-token
           key: github-token
+      HASS_TOKEN:
+        secretKeyRef:
+          name: hermes-hass-token
+          key: hass-token
 
     telegram:
        allowed_users: "612246271"
