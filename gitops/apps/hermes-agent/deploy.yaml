@@ -54,7 +54,16 @@ spec:
        WEBHOOK_ENABLED: "true"
        WEBHOOK_PORT: "8644"
        TERMINAL_ENV: "local"
-       HASS_URL: "http://192.168.10.65:8123"
+       # HASS serves a Let's Encrypt cert (SAN: home-pinos.duckdns.org). hermes' HASS
+       # client (aiohttp) has no skip-verify option, so connecting by IP fails TLS
+       # hostname verification. Use the cert hostname; hostAliases below pins it to the
+       # internal LAN IP so traffic stays local (no NAT hairpin) and TLS still verifies.
+       HASS_URL: "https://home-pinos.duckdns.org:8123"
+
+    hostAliases:
+      - ip: "192.168.10.65"
+        hostnames:
+          - home-pinos.duckdns.org
 
     secretEnv:
       GITHUB_TOKEN:

@@ -45,3 +45,6 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# Extra /etc/hosts entries for the pod, e.g. pinning a public hostname to a LAN IP.
+hostAliases: []
