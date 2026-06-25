@@ -65,6 +65,8 @@ spec:
         
     kubernetesMcp:
       enabled: true
+      image:
+        tag: "v0.0.63"      # ghcr.io/containers/kubernetes-mcp-server tags are v-prefixed
       readOnly: true
       disableDestructive: true
       rbac:
@@ -73,6 +75,9 @@ spec:
 
     grafanaMcp:
       enabled: true
+      image:
+        tag: "latest"       # mcp/grafana publishes only :latest on Docker Hub
+        pullPolicy: Always  # so the floating tag is re-pulled
       grafanaUrl: "http://kube-prometheus-stack-grafana.monitoring.svc"
       extraEnv:
         - name: GRAFANA_SERVICE_ACCOUNT_TOKEN
