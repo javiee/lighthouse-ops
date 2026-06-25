@@ -1,0 +1,31 @@
+---
+# Git source for the pharos-sre-bot Helm chart. The chart lives IN the app repo
+# (chart/pharos-sre-bot), so we reference it there rather than vendoring a copy.
+# Tracks a dedicated `pharos-sre-bot` branch so the lab can be iterated/troubleshot
+# without merging to the app repo's main. Switch to a tag/main once stabilised.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: pharos-sre-bot
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/javiee/pharos-sre-bot.git
+  ref:
+    branch: pharos-sre-bot
+---
+# Reconciles the app manifests (HelmChart + HelmRelease) from THIS ops repo.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: pharos-sre-bot
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./gitops/apps/pharos-sre-bot
+  prune: true
+  wait: true
+  timeout: 5m0s

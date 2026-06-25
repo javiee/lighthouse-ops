@@ -1,0 +1,96 @@
+---
+# NOTE: the `monitoring` namespace is created and owned by the base-infra
+# Kustomization (gitops/infrastructure/base/kube-prometheus-stack.yaml), so it is
+# intentionally NOT declared here — declaring it again would make two Flux
+# Kustomizations fight over the same object.
+#
+# Package the chart from the app repo (referenced by the GitRepository in
+# ../../lighthouse-cluster/pharos-sre-bot.yaml).
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmChart
+metadata:
+  name: pharos-sre-bot
+  namespace: flux-system
+spec:
+  interval: 1m
+  chart: chart/pharos-sre-bot
+  sourceRef:
+    kind: GitRepository
+    name: pharos-sre-bot
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: pharos-sre-bot
+  namespace: monitoring
+spec:
+  interval: 1m
+  chartRef:
+    kind: HelmChart
+    name: pharos-sre-bot
+    namespace: flux-system
+  install:
+    remediation:
+      retries: 0
+  upgrade:
+    remediation:
+      retries: 0
+  values:
+    image:
+      repository: ghcr.io/javiee/pharos-sre-bot
+      tag: "0.0.1"          # published by CI (semver strips the v: v0.0.1 -> 0.0.1)
+      pullPolicy: Always
+
+    # Pin to the lab node that has the GPU/LLM reachable, matching hermes-agent.
+    nodeSelector:
+      kubernetes.io/hostname: lh-satellite
+
+    agent:
+      # Ingest the chart's bundled runbooks/ into Qdrant at container start (PoC).
+      ingestOnStart: true
+      env:
+        LOG_LEVEL: "INFO"
+        MODEL: "Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL"
+        MAX_STEPS: "6"
+        COLLECTION_NAME: "runbooks"
+        # Local llama-swap endpoint on the LAN (no auth -> LLM_API_KEY is a dummy).
+        LLM_BASE_URL: "http://192.168.10.127:9090/v1"
+        LLM_API_KEY: "sk-no-key-required"
+        GRAFANA_PROMETHEUS_UID: "prometheus"
+
+    # Mount the chart-bundled runbooks (chart/pharos-sre-bot/runbooks/*.md) at /runbooks.
+    runbooks:
+      enabled: true
+      mountPath: /runbooks
+
+    # In-pod vector DB sidecar.
+    qdrant:
+      enabled: true
+      persistence:
+        enabled: true
+        size: 5Gi
+
+    # Kubernetes signals: in-cluster, read-only. Uses the pod ServiceAccount with a
+    # chart-managed least-privilege read-only RBAC role — NO kubeconfig/secret needed.
+    kubernetesMcp:
+      enabled: true
+      readOnly: true
+      disableDestructive: true
+      rbac:
+        create: true
+        scope: cluster      # cluster-wide read-only; set to "namespace" to restrict
+
+    # Grafana signals: read-only MCP sidecar pointed at the in-cluster Grafana
+    # (same namespace). Requires a read-only (Viewer) Grafana service-account token
+    # supplied via a Secret — created out-of-band, NEVER committed (AGENTS.md):
+    #   kubectl -n monitoring create secret generic pharos-grafana-token \
+    #     --from-literal=grafana-service-account-token='<VIEWER_SA_TOKEN>'
+    grafanaMcp:
+      enabled: true
+      grafanaUrl: "http://kube-prometheus-stack-grafana.monitoring.svc"
+      extraEnv:
+        - name: GRAFANA_SERVICE_ACCOUNT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: pharos-grafana-token
+              key: grafana-service-account-token
