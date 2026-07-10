@@ -31,7 +31,7 @@ spec:
   values:
     image:
       repository: ghcr.io/javiee/pharos-sre-bot
-      tag: "0.0.1"        
+      tag: "0.0.1"  # {"$imagepolicy": "flux-system:pharos-sre-bot:tag"}        
       pullPolicy: Always
 
     # Pin to the lab node that has the GPU/LLM reachable, matching hermes-agent.

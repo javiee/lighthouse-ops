@@ -41,6 +41,8 @@ in
             --repository=${fluxRepo} \
             --branch=${fluxBranch} \
             --path=${fluxPath} \
+            --components-extra=image-reflector-controller,image-automation-controller \
+            --read-write-key=true \
             --personal
 
           touch /var/lib/flux/.bootstrapped

@@ -1,0 +1,47 @@
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: pharos-sre-bot
+  namespace: flux-system
+spec:
+  image: ghcr.io/javiee/pharos-sre-bot
+  interval: 5m
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: pharos-sre-bot
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: pharos-sre-bot
+  policy:
+    semver:
+      range: ">=0.0.1"
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageUpdateAutomation
+metadata:
+  name: pharos-sre-bot
+  namespace: flux-system
+spec:
+  interval: 5m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        name: fluxcdbot
+        email: fluxcdbot@users.noreply.github.com
+      messageTemplate: |
+        (pharos-sre-bot): update image version: {{range .Updated.Images}}{{println .}}{{end}}
+    push:
+      branch: main
+  update:
+    path: ./gitops/apps/pharos-sre-bot
+    strategy: Setters
