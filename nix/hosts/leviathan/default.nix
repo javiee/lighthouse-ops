@@ -8,7 +8,7 @@
     ../../modules/ssh.nix
     ../../modules/users.nix
     ../../modules/tailscale.nix
-    ../../modules/nvidia.nix
+    ../../modules/amdgpu.nix
     ../../modules/ollama.nix
     ../../modules/llama-cpp.nix
     ../../modules/k3s-join.nix

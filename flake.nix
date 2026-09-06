@@ -28,7 +28,7 @@
           # Flake reference to nixpkgs-unstable for nixosModules import
           unstableNixpkgs = nixpkgs-unstable;
           # nixpkgs-unstable for packages where nixos-25.11's version is too
-          # old (e.g. llama-cpp). Construct with allowUnfree so its CUDA
+          # old (e.g. llama-swap). Construct with allowUnfree so any unfree
           # deps evaluate.
           _unstablePkgs = import nixpkgs-unstable {
             system = "x86_64-linux";
@@ -60,7 +60,7 @@
           # `legacyPackages` honours neither the NIXPKGS_ALLOW_UNFREE env var
           # nor `nixpkgs.config.allowUnfree` from your NixOS modules — the
           # dev shell's pkgs are separate. Construct pkgs explicitly with
-          # allowUnfree turned on so CUDA / NVIDIA deps evaluate.
+          # allowUnfree turned on so unfree deps evaluate.
           pkgs = import nixpkgs {
             inherit system;
             config.allowUnfree = true;
