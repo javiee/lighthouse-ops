@@ -103,7 +103,9 @@
               jq
               yq-go
               # AI / models
-              opencode-patched                      # pinned to v1.15.6 (bun check patched)
+              # opencode-patched — DISABLED, see nix/modules/common.nix.
+              # Upstream's bun.lock no longer satisfies --frozen-lockfile, so
+              # the package cannot build at any nixpkgs rev right now.
               aider-chat-no-tests                    # aider — AI pair programmer (aider.chat); tests disabled (litellm metadata drift)
               python3Packages.huggingface-hub       # provides `hf` (and legacy `huggingface-cli`) on PATH
               # Terminal

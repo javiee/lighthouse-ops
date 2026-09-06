@@ -58,6 +58,12 @@ in
     htop
     tmux
     unzip
-    opencode-patched                            # pinned to v1.15.6 via flake input (bun check patched)
+    # opencode-patched — TEMPORARILY DISABLED (2026-09-06).
+    # Its node_modules derivation runs `bun install --frozen-lockfile`, and
+    # upstream's committed bun.lock no longer matches what the registry
+    # resolves, so the build dies with "lockfile had changes, but lockfile is
+    # frozen". This reproduces at every nixpkgs rev tried, so it is NOT
+    # related to the AMD GPU migration — it blocks any rebuild of this repo.
+    # Re-enable once upstream re-locks (or after re-locking bun.lock here).
   ];
 }
