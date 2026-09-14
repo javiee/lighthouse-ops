@@ -1,17 +1,5 @@
-{ pkgs, opencode, ... }:
+{ pkgs, _unstablePkgs, ... }:
 
-let
-  # opencode 1.15.6 build asserts bun >= 1.3.14, but every nixpkgs (stable,
-  # unstable, opencode's own lock) currently ships bun 1.3.13. The runtime
-  # behaviour is identical between the two; the check is purely defensive.
-  # Neuter it so the build proceeds.
-  opencode-patched = opencode.packages.${pkgs.system}.default.overrideAttrs (old: {
-    postPatch = (old.postPatch or "") + ''
-      substituteInPlace packages/script/src/index.ts \
-        --replace-fail 'semver.satisfies(process.versions.bun, expectedBunVersionRange)' 'true'
-    '';
-  });
-in
 {
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -20,6 +8,12 @@ in
   networking.firewall.enable = true;
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  # Let admins pass privileged nix options (extra-substituters,
+  # extra-trusted-public-keys, stalled-download-timeout) from the command line.
+  # An untrusted user's --option for these is silently IGNORED by the daemon,
+  # which shows up as "why is it rebuilding everything from source".
+  nix.settings.trusted-users = [ "root" "@wheel" ];
 
   # Safety net: a real kernel panic should reboot and self-heal, not hang.
   boot.kernel.sysctl = {
@@ -58,12 +52,13 @@ in
     htop
     tmux
     unzip
-    # opencode-patched — TEMPORARILY DISABLED (2026-09-06).
-    # Its node_modules derivation runs `bun install --frozen-lockfile`, and
-    # upstream's committed bun.lock no longer matches what the registry
-    # resolves, so the build dies with "lockfile had changes, but lockfile is
-    # frozen". This reproduces at every nixpkgs rev tried, so it is NOT
-    # related to the AMD GPU migration — it blocks any rebuild of this repo.
-    # Re-enable once upstream re-locks (or after re-locking bun.lock here).
+    # opencode from nixpkgs-unstable (1.18.25), NOT from an upstream flake
+    # input. Upstream pins `packageManager: bun@1.3.14`, and both its bun.lock
+    # and its node_modules fixed-output hash come from that exact bun — which
+    # no nixpkgs channel ships (25.11: 1.3.3, unstable: 1.3.13). Building it
+    # ourselves therefore fails --frozen-lockfile. nixpkgs' own package handles
+    # this and is prebuilt on cache.nixos.org, so we get a working binary with
+    # no build at all. 25.11's opencode is far too old (1.1.14), hence unstable.
+    _unstablePkgs.opencode
   ];
 }

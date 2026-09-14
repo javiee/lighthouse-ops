@@ -5,26 +5,28 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # AMD AI stack for NixOS (Lemonade server + ROCm/Vulkan llama.cpp,
+    # whisper.cpp, stable-diffusion.cpp backends wired declaratively).
+    #
+    # Deliberately NOT `inputs.nixpkgs.follows` — upstream builds its overlay
+    # against its own pinned nixpkgs so the closure hash matches both
+    # cache.nixos.org and its Cachix. Pointing it at ours re-hashes every
+    # backend and forces a full source rebuild. See the flake's README.
+    nix-amd-ai.url = "github:noamsto/nix-amd-ai";
+
     agenix = {
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    opencode = {
-      url = "github:anomalyco/opencode/v1.17.8";
-      # opencode asserts a minimum bun version at build time that can be newer
-      # than any nixpkgs ships; we patch the check out below. nixpkgs-unstable
-      # has the newest bun available.
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
-    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, agenix, opencode, ... }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, agenix, nix-amd-ai, ... }:
     let
       mkHost = hostname: nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = {
-          inherit hostname opencode nixpkgs-unstable;
+          inherit hostname nixpkgs-unstable nix-amd-ai;
           # Flake reference to nixpkgs-unstable for nixosModules import
           unstableNixpkgs = nixpkgs-unstable;
           # nixpkgs-unstable for packages where nixos-25.11's version is too
@@ -66,12 +68,12 @@
             config.allowUnfree = true;
           };
 
-          opencode-patched = opencode.packages.${system}.default.overrideAttrs (old: {
-            postPatch = (old.postPatch or "") + ''
-              substituteInPlace packages/script/src/index.ts \
-                --replace-fail 'semver.satisfies(process.versions.bun, expectedBunVersionRange)' 'true'
-            '';
-          });
+          # 25.11 has opencode 1.1.14; unstable has 1.18.25 and it is prebuilt
+          # on cache.nixos.org.
+          upkgs = import nixpkgs-unstable {
+            inherit system;
+            config.allowUnfree = true;
+          };
 
           # aider-chat's tests check litellm model-catalog metadata that drifts
           # between releases. 3 tests fail against current litellm despite the
@@ -103,9 +105,7 @@
               jq
               yq-go
               # AI / models
-              # opencode-patched — DISABLED, see nix/modules/common.nix.
-              # Upstream's bun.lock no longer satisfies --frozen-lockfile, so
-              # the package cannot build at any nixpkgs rev right now.
+              upkgs.opencode                        # 1.18.25 from nixpkgs-unstable (cached)
               aider-chat-no-tests                    # aider — AI pair programmer (aider.chat); tests disabled (litellm metadata drift)
               python3Packages.huggingface-hub       # provides `hf` (and legacy `huggingface-cli`) on PATH
               # Terminal

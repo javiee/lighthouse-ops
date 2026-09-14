@@ -57,6 +57,84 @@
       };
 
       models = {
+        # ─────────────────────────────────────────────────────────────────────
+        # ACTIVE: Qwen3.8-27B (dense, 27.32B params)
+        #
+        # Sizing — MEASURED on the R9700 (31.86 GiB usable), not calculated.
+        # llama-server loaded at -ngl 99 with q8_0 KV + MTP:
+        #
+        #   ctx  65536  ->  21.73 GiB
+        #   ctx  98304  ->  22.92 GiB
+        #   ctx 131072  ->  23.99 GiB   <- current, ~7.9 GiB headroom
+        #
+        # Do NOT size this from the GGUF header. Computing it as
+        # 65 blocks x head_count_kv 4 x (key_length 256 + value_length 256)
+        # = 133,120 elems/token at 8.5 bpw predicts ~17.3 GiB of KV at 131072
+        # and "will not fit" — about 4x too pessimistic. The measured cost is
+        # roughly 1.1 GiB per additional 32768 tokens, because llama.cpp does
+        # not reserve the whole cache up front.
+        #
+        # Caveat: those figures are taken right after load. A conversation that
+        # genuinely fills 131072 tokens will grow beyond them, so the headroom
+        # is smaller than it looks. If long sessions OOM, step down to 98304.
+        #
+        # No --n-cpu-moe: dense model, and it fits entirely in VRAM anyway.
+        #
+        # --spec-type draft-mtp: this GGUF ships its own Multi-Token Prediction
+        # head — blk.64.nextn.*, which is why block_count is 65 for a 64-layer
+        # model. No external draft model is needed. The MTP head drafts ahead
+        # and the full model verifies a whole batch in ONE forward pass, so
+        # accepted tokens cost no extra weight read.
+        #
+        # This is why it beats the naive memory-bandwidth ceiling: 640 GB/s over
+        # 17.54 GB of weights caps plain decoding at ~36.5 tok/s, but measured
+        # through lemonade with MTP on we saw 38.2 tok/s at draft_n=6 /
+        # accepted=4 (67%), versus 27 tok/s without it. Same weights, same card.
+        #
+        # reasoning_effort: the GGUF chat template defaults to 'xhigh' and
+        # accepts only xhigh | medium | low (it raise_exception's on anything
+        # else; 'high' is silently remapped to xhigh). 'medium' cuts the length
+        # of the thinking block, so answers arrive sooner even though t/s is
+        # unchanged — generation here is memory-bandwidth bound at ~27 t/s.
+        # ─────────────────────────────────────────────────────────────────────
+        "Qwen3.8-27B-UD-Q4_K_XL" = {
+          name = "Qwen3.8-27B-UD-Q4_K_XL";
+          description = "Qwen3.8 27B dense, Q4_K_XL, 128k ctx, turbo4 KV, all on GPU";
+          ttl = 3600;
+          cmd = ''
+            /run/current-system/sw/bin/llama-server \
+              -m /data/models/qwen3.8/Qwen3.8-27B-UD-Q4_K_XL.gguf \
+              --alias Qwen3.8-27B-UD-Q4_K_XL \
+              --device ROCm0 \
+              -ngl 99 \
+              -c 131072 \
+              --spec-type draft-mtp \
+              --cache-type-k q8_0 --cache-type-v q8_0 \
+              --flash-attn on \
+              --batch-size 2048 \
+              --ubatch-size 512 \
+              --threads 6 \
+              -np 1 \
+              --cont-batching \
+              --no-mmap \
+              --jinja \
+              --chat-template-kwargs '{"reasoning_effort":"medium"}' \
+              --metrics \
+              --host 127.0.0.1 \
+              --port ''${PORT} \
+              --slot-save-path /data/cache/
+          '';
+          aliases = [ "Qwen3.8-27B" ];
+        };
+
+        # ─────────────────────────────────────────────────────────────────────
+        # DISABLED 2026-09-06 with the RTX 3060 → Radeon AI PRO R9700 swap.
+        # These were all tuned for a 12 GB card (note the --n-cpu-moe values,
+        # which pushed 30-40 MoE layers onto the CPU). On 32 GB they would run,
+        # but the offload settings are wrong and they are not what is wanted
+        # right now. Kept verbatim for reference / easy re-enable.
+        # ─────────────────────────────────────────────────────────────────────
+        /*
         # ── IQ3_XXS: smaller, faster, longer context, no MTP ────────────────
         "Qwen3.6-35B-A3B-UD-IQ3_XXS" = {
           name = "Qwen3.6-35B-A3B-UD-IQ3_XXS";
@@ -180,6 +258,7 @@
           '';
           aliases = [ "Qwen3.6-35B-A3B-APEX-I-Balanced" ];
         };
+        */
       };
     };
   };
@@ -216,6 +295,14 @@
     LimitMEMLOCK          = lib.mkForce "infinity";
   };
 
+  # The Ryzen 7600X's integrated GPU also registers as a ROCm device
+  # (ROCm1, gfx1036). Unlike ollama — which drops it automatically with
+  # "no rocblas support for gfx target" — llama.cpp will happily split layers
+  # onto it, backed by system RAM, which is both slow and liable to fail on an
+  # arch rocBLAS does not support. Hide it so every llama-server that
+  # llama-swap spawns sees only the R9700 as ROCm0.
+  systemd.services.llama-swap.environment.ROCR_VISIBLE_DEVICES = "0";
+
   # Only llama-swap is publicly reachable; inner llama-server instances
   # listen on 127.0.0.1 with ports llama-swap assigns dynamically.
   networking.firewall.allowedTCPPorts = [ 9090 ];
@@ -231,7 +318,10 @@
     enableNotifications = false;
     extraArgs = [
       # Prefer to sacrifice the model server, never the control plane.
-      "--prefer" "^(llama-server|ollama)$"
+      # Process names, not service names. llama-swap spawns `llama-server`;
+      # lemonade execs its backend symlink so its process is `llamacpp-rocm`
+      # (and `sdcpp-rocm` for image generation). ollama was removed 2026-09-07.
+      "--prefer" "^(llama-server|llamacpp-rocm|sdcpp-rocm|lemond)$"
       "--avoid" "^(sshd|k3s|systemd|tailscaled|containerd)$"
     ];
   };
