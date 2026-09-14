@@ -5,8 +5,8 @@ High-signal facts for working in this repo. Everything else is in `CLAUDE.md`.
 ## Nix / flake
 
 - **Flakes ignore untracked files.** `git add` new `.nix` or `.age` files before building, or the build fails with "path not tracked by Git."
-- The flake evaluates with `allowUnfree = true` globally (in devShells). Packages like `cudaSupport` on nvidia/firefox cascade from a global `nixpkgs.config.cudaSupport = true` — **never set it globally here**. Use per-package `.override { cudaSupport = true; }` (only `llama-cpp` needs it).
-- `nixpkgs-unstable` is a pinned input. Use `unstable` from `specialArgs` in host modules for newer packages (e.g., llama-cpp CUDA deps). In dev shells, import directly via the helper shown in `flake.nix`.
+- The flake evaluates with `allowUnfree = true` globally (in devShells). **Never set `nixpkgs.config.rocmSupport` (or `cudaSupport`) globally** — it cascades into unrelated packages. Scope GPU support per-package; `llama-cpp` is the only one that needs it.
+- `nixpkgs-unstable` is a pinned input. Use `_unstablePkgs` from `specialArgs` in host modules for newer packages — currently llama-swap plus leviathan's whole GPU stack (kernel 6.18, ROCm 7.2.3, llama.cpp). In dev shells, import directly via the helper shown in `flake.nix`.
 - `nix flake check` validates the entire flake (no build). Run it before deploying.
 - `nix fmt` formats all `.nix` files.
 
@@ -33,7 +33,7 @@ The `--build-host` flag builds on the Linux target, not the Mac.
 
 ## K3s gotchas
 
-- After changing runtime config (CDI, nvidia), **delete the cached containerd config and restart**:
+- If a custom containerd runtime is ever registered again, **delete the cached containerd config and restart**:
   ```bash
   rm /var/lib/rancher/k3s/agent/etc/containerd/config.toml
   systemctl restart k3s
@@ -42,10 +42,11 @@ The `--build-host` flag builds on the Linux target, not the Mac.
 
 ## Ops
 
-- **`stalled-download-timeout`** requires the calling user in `nix.settings.trusted-users`. `@wheel` is currently trusted (set in `nix/modules/common.nix`).
+- **Privileged nix options** (`stalled-download-timeout`, `extra-substituters`, `extra-trusted-public-keys`) require the caller to be in `nix.settings.trusted-users`, else they are silently ignored. `[ "root" "@wheel" ]` is set in `nix/modules/common.nix`.
 - **Tailscale DNS:** Public DNS only works if a Global nameserver is configured in the Tailscale admin panel.
-- **First CUDA build on a new host takes hours.** Subsequent builds reuse `/nix/store`.
-- NVIDIA CDN downloads are slow/unreliable — avoid `cudaSupport = true` on anything broader than what needs it.
+- **First HIP build on a new host takes a while.** Subsequent builds reuse `/nix/store`. Keep ROCm libs on the cached multi-arch build; pin only our own kernels to `gfx1201`.
+- **`nix flake update` bumps leviathan's kernel**, because `boot.kernelPackages` comes from `nixpkgs-unstable`. Use `nixos-rebuild boot` after such a bump, not `switch`.
+- ROCm libraries are large; avoid `rocmSupport = true` on anything broader than what needs it.
 
 ## Dev shell
 

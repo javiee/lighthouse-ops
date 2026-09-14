@@ -8,11 +8,11 @@
     ../../modules/ssh.nix
     ../../modules/users.nix
     ../../modules/tailscale.nix
-    ../../modules/nvidia.nix
-    ../../modules/ollama.nix
+    ../../modules/amdgpu.nix
     ../../modules/llama-cpp.nix
     ../../modules/k3s-join.nix
     ../../modules/llama-swap.nix
+    ../../modules/lemonade.nix
   ];
 
   networking.hostName = hostname;
