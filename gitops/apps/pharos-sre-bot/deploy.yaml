@@ -47,7 +47,7 @@ spec:
         MAX_STEPS: "6"
         COLLECTION_NAME: "runbooks"
         # Local llama-swap endpoint on the LAN (no auth -> LLM_API_KEY is a dummy).
-        LLM_BASE_URL: "http://192.168.10.127:9090/v1"
+        LLM_BASE_URL: "http://192.168.10.213:13305/api/v1"
         LLM_API_KEY: "sk-no-key-required"
         GRAFANA_PROMETHEUS_UID: "prometheus"
 
