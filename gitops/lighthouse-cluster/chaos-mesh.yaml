@@ -1,0 +1,21 @@
+---
+# Chaos Mesh — chaos-engineering platform for on-demand fault-injection tests
+# of the pharos-sre-bot troubleshooting agent.
+#
+# Installs only the platform (controller + daemon + dashboard). The test
+# scenario manifests (workloads + Chaos CRs) live in the app repo under
+# tests/e2e/ and are applied/removed per run — they are NOT part of gitops.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: chaos-mesh
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./gitops/apps/chaos-mesh
+  prune: true
+  wait: true
+  timeout: 5m0s
