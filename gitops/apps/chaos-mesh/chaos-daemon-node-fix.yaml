@@ -1,0 +1,74 @@
+---
+# Node-level fixups for running the chaos-mesh daemon on k3s + nftables.
+#
+# Two problems, one self-healing DaemonSet (idempotent loop; /var/run is
+# tmpfs, wiped on reboot / NixOS activation):
+#
+# 1) k3s runs containerd at /var/run/k3s/containerd/containerd.sock, but the
+#    chart maps chaosDaemon.socketPath to a flat /host-run/<basename>, so the
+#    daemon can never reach the nested k3s path. Expose it as
+#    /var/run/containerd.sock (the HelmRelease sets socketPath to that).
+#
+# 2) The chaos-daemon image forces LEGACY iptables
+#    (Dockerfile: update-alternatives --set iptables /usr/sbin/iptables-legacy,
+#    still unfixed upstream as of 2.8.6 — see chaos-mesh PR #4959). On
+#    nftables-backend kernels (k3s/NixOS) legacy tables do not exist, so every
+#    NetworkChaos injection fails with "unable to set ip tables chains".
+#    The image does ship iptables-nft (and it works), so we expose shims at
+#    /var/run/chaos-shim/ that exec the nft variants, and the HelmRelease
+#    prepends /host-run/chaos-shim to the daemon's PATH.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: chaos-daemon-node-fix
+  namespace: chaos-mesh
+  labels:
+    app.kubernetes.io/name: chaos-daemon-node-fix
+    app.kubernetes.io/instance: chaos-mesh
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chaos-daemon-node-fix
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: chaos-daemon-node-fix
+    spec:
+      priorityClassName: system-node-critical
+      tolerations:
+        - operator: Exists # k3s control-plane nodes carry taints
+      containers:
+        - name: fix
+          image: busybox:stable
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              while true; do
+                # (1) flat symlink for the nested k3s containerd socket
+                if [ -S /host-run/k3s/containerd/containerd.sock ] && [ ! -e /host-run/containerd.sock ]; then
+                  ln -sf k3s/containerd/containerd.sock /host-run/containerd.sock
+                fi
+                # (2) nftables-flavor shims for the daemon's hardcoded legacy iptables
+                if [ ! -x /host-run/chaos-shim/iptables ]; then
+                  mkdir -p /host-run/chaos-shim
+                  for b in iptables ip6tables arptables; do
+                    printf '#!/bin/sh\nexec /usr/sbin/%s-nft "$@"\n' "$b" > "/host-run/chaos-shim/$b"
+                    chmod +x "/host-run/chaos-shim/$b"
+                  done
+                  printf '#!/bin/sh\nexec /usr/sbin/iptables-nft-save "$@"\n' > /host-run/chaos-shim/iptables-save
+                  chmod +x /host-run/chaos-shim/iptables-save
+                  printf '#!/bin/sh\nexec /usr/sbin/iptables-nft-restore "$@"\n' > /host-run/chaos-shim/iptables-restore
+                  chmod +x /host-run/chaos-shim/iptables-restore
+                fi
+                sleep 60
+              done
+          volumeMounts:
+            - name: run
+              mountPath: /host-run
+      volumes:
+        - name: run
+          hostPath:
+            path: /var/run
+            type: Directory

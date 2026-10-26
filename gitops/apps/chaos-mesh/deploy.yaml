@@ -47,3 +47,9 @@ spec:
     chaosDaemon:
       runtime: containerd
       socketPath: /var/run/containerd.sock
+      # Prepend /host-run/chaos-shim (host /var/run/chaos-shim, created by
+      # chaos-daemon-node-fix.yaml): shims that exec the nftables flavor of
+      # iptables, because the image hardcodes the legacy flavor (broken on
+      # nftables-backend kernels; chaos-mesh PR #4959, unfixed in 2.8.6).
+      env:
+        PATH: /host-run/chaos-shim:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/byteman/bin:/usr/local/bin
