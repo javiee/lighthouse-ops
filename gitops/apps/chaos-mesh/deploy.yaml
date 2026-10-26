@@ -35,7 +35,15 @@ spec:
     remediation:
       retries: 3
   values:
-    # Web UI to run chaos experiments on demand. ClusterIP only (no ingress by
-    # cluster design): access via `kubectl -n chaos-mesh port-forward svc/chaos-dashboard`.
+    # Web UI to run chaos experiments on demand. Chart 2.8.6 exposes it as
+    # NodePort 2333 with NO auth — it stays LAN-only by design (do not
+    # front it with ngrok).
     chaosDashboard:
       enabled: true
+    # The chart defaults to the DOCKER runtime; these nodes are k3s
+    # (containerd). The socket is nested under /var/run/k3s/containerd/,
+    # which the chart's flat /host-run/<basename> mapping cannot reach —
+    # k3s-socket-fix.yaml symlinks it to /var/run/containerd.sock.
+    chaosDaemon:
+      runtime: containerd
+      socketPath: /var/run/containerd.sock
