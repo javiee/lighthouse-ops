@@ -125,8 +125,15 @@
         # forces it.
         #
         # Measured at 131072 with Lemonade's f16 KV cache: 25.57 GiB of 31.86.
-        # (llama-swap fits the same context in ~24 GiB because it uses q8_0.)
-        ctx_size = 131072;
+        # 262144 at f16 would roughly double the ~8.3 GiB of KV and overflow
+        # the card, so the KV cache is quantized to q8_0 below. That halves it,
+        # putting the full 262144 context back at roughly the same footprint.
+        ctx_size = 262144;
+
+        # Overrides the module's own args string (recursiveUpdate replaces
+        # leaf values), so its --flash-attn is repeated here. Flash attention
+        # is required for a quantized V cache in llama.cpp.
+        llamacpp.args = "--flash-attn on --cache-type-k q8_0 --cache-type-v q8_0";
       };
     };
   };
