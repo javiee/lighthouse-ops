@@ -23,10 +23,10 @@
 # below. Starting lemond stops llama-swap, and vice versa
 # (systemd Conflicts= is bidirectional).
 #
-# autoStart = false, so llama-swap still owns the GPU at boot. To test:
-#   sudo systemctl start lemond      # stops llama-swap
+# autoStart = true: lemond owns the GPU at boot (hermes-agent and
+# pharos-sre-bot point at :13305). llama-swap is disabled in llama-swap.nix;
+# the Conflicts=/After= below stay so re-enabling it can't double-book VRAM.
 #   curl http://leviathan:13305/api/v1/models
-#   sudo systemctl start llama-swap  # hands the GPU back
 
 {
   imports = [ nix-amd-ai.nixosModules.default ];
@@ -80,7 +80,7 @@
     gpuTarget = "gfx1150";
 
     lemonade = {
-      autoStart = false;       # llama-swap keeps the GPU at boot; start this by hand
+      autoStart = true;        # lemond owns the GPU at boot (llama-swap is disabled)
       host = "0.0.0.0";        # firewall still gates the LAN
       port = 13305;
       user = "jcaro";
