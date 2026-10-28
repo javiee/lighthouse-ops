@@ -33,6 +33,8 @@ The `--build-host` flag builds on the Linux target, not the Mac.
 
 ## K3s gotchas
 
+- **Kubernetes context is `lh-satellite`.** Always set it (`kubectx lh-satellite` or `kubectl --context lh-satellite`); never use any other context in this project.
+
 - If a custom containerd runtime is ever registered again, **delete the cached containerd config and restart**:
   ```bash
   rm /var/lib/rancher/k3s/agent/etc/containerd/config.toml
@@ -50,7 +52,17 @@ The `--build-host` flag builds on the Linux target, not the Mac.
 
 ## Dev shell
 
-`nix develop` (or `direnv` via `.envrc`) provides: `kubectl`, `helm`, `fluxcd`, `k9s`, `kubeseal`, `opentofu`, `age`, `agenix`, `gh`, `git`, `jq`, `yq-go`, `opencode`, `aider`, `python3Packages.huggingface-hub` (provides `hf`), `tmux`.
+`nix develop` (or `direnv` via `.envrc`) provides: `kubectl`, `helm`, `kubectx`, `k9s`, `kubeseal`, `fluxcd`, `opentofu`, `age`, `agenix`, `gh`, `git`, `jq`, `yq-go`, `opencode`, `aider`, `python3Packages.huggingface-hub` (provides `hf`), `tmux`.
+
+- `opencode` comes from `nixpkgs-unstable` (1.18.x, prebuilt on cache.nixos.org); 25.11's is ancient. Don't "fix" it back to `pkgs.opencode`.
+- `aider-chat` has tests disabled (`doCheck = false`) — 3 upstream tests fail on litellm metadata drift; the tool itself is fine.
+
+## GitOps workloads / app images
+
+- `gitops/apps/` holds deployed workloads: `hermes-agent` (Helm chart in `charts/hermes-agent`), `pharos-sre-bot`, `ngrok`. CLAUDE.md's "currently empty" note is stale.
+- `docker/hermes/Dockerfile` is built/pushed by `.github/workflows/docker-build-push.yml` on pushes to `main` touching `docker/**` → `ghcr.io/javiee/lighthouse-ops/hermes`, tag pinned in the workflow's `HERMES_VERSION` env (bump it manually when changing the image).
+- `pharos-sre-bot` has a Flux `ImageUpdateAutomation` that **auto-commits and pushes to `main`** (as `fluxcdbot`) when a new `ghcr.io/javiee/pharos-sre-bot` tag appears. These commits are expected; don't revert or fight them.
+- Pre-commit hook: `gitleaks` on staged files (config: `.gitleaksignore`).
 
 ## Git
 
@@ -61,5 +73,6 @@ The `--build-host` flag builds on the Linux target, not the Mac.
 ## Things to skip
 
 - `.aider.chat.history.md` — stale LLM chat logs, ignore.
+- `lab/` — untracked personal scratch (spreadsheets/scripts), not part of the flake.
 - `requirements.txt` — leftover from an abandoned Flask experiment, not used.
 - `README.md` — empty.

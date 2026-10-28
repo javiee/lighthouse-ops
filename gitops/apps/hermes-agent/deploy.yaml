@@ -91,19 +91,33 @@ spec:
               pathType: Prefix
               port: dashboard
 
-    # To configure the model, exec into the pod and edit /opt/data/config.yaml:
-    # kubectl exec -it hermes-agent-xxxx -n hermes-agent -- cat << 'EOF' > /opt/data/config.yaml
-    # model:
-    #   default: "Qwen3.6-35B-APEX-I-Balanced"
-    #   provider: openai
-    #   base_url: http://localhost:9090
-    # terminal:
-    #   backend: local
-    #   cwd: /workspace
-    #   timeout: 180
-    # compression:
-    #   enabled: true
-    #   threshold: 0.85
-    # agent:
-    #   max_turns: 90
-    # EOF
+    # Model config lives in /opt/data/config.yaml inside the pod (on the PVC),
+    # managed by hand — not via this manifest. Current setup (as of 2026-10-27):
+    #   model:
+    #     default: Qwen3.8-27B-UD-Q4_K_XL
+    #     provider: custom:leviathan:13305   # references the custom_providers entry below
+    #   custom_providers:
+    #   - name: leviathan:13305
+    #     base_url: http://192.168.10.127:13305/api/v1   # lemond (Lemonade) on leviathan
+    #     model: Qwen3.8-27B-UD-Q4_K_XL
+    #
+    # IMPORTANT: use the NAMED custom-provider form (provider: custom:<name>).
+    # The bare form (provider: custom + model.base_url) does NOT survive
+    # hermes re-saving its config: the serializer wipes model.base_url when a
+    # matching custom_providers entry exists, and bare-custom resolution with
+    # an empty base_url falls back to OpenRouter (silent total failure).
+    # The named form round-trips hermes's own save_config unchanged.
+    #
+    # NOTE: lemond and llama-swap are mutually exclusive on the R9700's VRAM
+    # (see nix/modules/lemonade.nix). hermes only works while `lemond` is
+    # running on leviathan (`sudo systemctl start lemond`); switching back to
+    # llama-swap:9090 requires updating the custom_providers entry.
+    # 192.168.10.127 is leviathan's Wi-Fi IP — the wired IP (enp10s0) is more
+    # stable if it ever changes.
+    #
+    # To edit:
+    #   ssh lh-satellite
+    #   kubectl -n hermes-agent cp <pod>:/opt/data/config.yaml /tmp/c.yaml
+    #   # edit /tmp/c.yaml
+    #   kubectl -n hermes-agent cp /tmp/c.yaml <pod>:/opt/data/config.yaml
+    #   kubectl -n hermes-agent rollout restart deployment hermes-agent
