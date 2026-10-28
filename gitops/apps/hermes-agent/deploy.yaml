@@ -125,7 +125,7 @@ spec:
     #     provider: custom:leviathan:13305   # references the custom_providers entry below
     #   custom_providers:
     #   - name: leviathan:13305
-    #     base_url: http://192.168.10.127:13305/api/v1   # lemond (Lemonade) on leviathan
+    #     base_url: http://192.168.10.213:13305/api/v1   # lemond (Lemonade) on leviathan, wired enp10s0
     #     model: Qwen3.8-27B-UD-Q4_K_XL
     #
     # IMPORTANT: use the NAMED custom-provider form (provider: custom:<name>).
@@ -139,8 +139,9 @@ spec:
     # (see nix/modules/lemonade.nix). hermes only works while `lemond` is
     # running on leviathan (`sudo systemctl start lemond`); switching back to
     # llama-swap:9090 requires updating the custom_providers entry.
-    # 192.168.10.127 is leviathan's Wi-Fi IP — the wired IP (enp10s0) is more
-    # stable if it ever changes.
+    # 192.168.10.213 is leviathan's wired IP (enp10s0) — preferred over the
+    # Wi-Fi IP (wlp9s0, e.g. 192.168.10.127) for stability. If the wired
+    # address ever changes, update the custom_providers entry.
     #
     # To edit:
     #   ssh lh-satellite
