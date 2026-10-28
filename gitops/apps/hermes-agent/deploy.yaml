@@ -44,6 +44,33 @@ spec:
     nodeSelector:
       kubernetes.io/hostname: lh-satellite
 
+    # Boot-time STT patch bootstrap.
+    #
+    # The hermes image venv flaps between revisions (faster_whisper missing
+    # or buggy — its metadata_errors kwarg is rejected by PyAV19). The
+    # durable patched STT stack lives on the PVC at
+    # /opt/data/home/.local/lib/python3.13/site-packages and is exposed to
+    # the venv via a .pth file in the venv's site-packages. Problem: that
+    # .pth lives in the CONTAINER layer, so every container restart wipes
+    # it. The cron job ensure-whisper-patch.sh restores it but then
+    # SIGTERMs the gateway whenever it detects a change — and under the s6
+    # container topology a gateway SIGTERM kills the whole container
+    # (2026-10-28 crash loop; the script's kill switch is disabled — see
+    # its "AUTO-RESTART DISABLED" marker). Restoring the .pth here at boot,
+    # before the gateway starts, means the cron job never sees a boot-time
+    # change and the gateway is never killed for it.
+    # NOTE: path hardcodes python3.13, same as the cron script's USER_SITE.
+    # If the image bumps the minor version, update both.
+    args:
+      - sh
+      - -c
+      - |
+        SITE=$(ls -d /opt/hermes/.venv/lib/python*/site-packages 2>/dev/null | head -1)
+        if [ -n "$SITE" ]; then
+          printf '/opt/data/home/.local/lib/python3.13/site-packages\n' > "$SITE/hermes_stt_user_site.pth"
+        fi
+        exec hermes gateway run
+
     env:
        HERMES_DASHBOARD: "1"
        HERMES_DASHBOARD_HOST: "0.0.0.0"
