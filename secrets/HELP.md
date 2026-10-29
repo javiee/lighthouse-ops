@@ -28,7 +28,7 @@ age -d -i ~/.config/age/keys.txt secrets/<name>.age
 Or from the satellite where agenix already decrypted at boot:
 
 ```bash
-ssh jcaro@192.168.10.122 'sudo cat /run/agenix/<name>'
+ssh jcaro@192.168.10.200 'sudo cat /run/agenix/<name>'
 ```
 
 ### Re-encrypt after editing `secrets.nix`
@@ -72,7 +72,7 @@ Means your local age key isn't a recipient on the file. Two paths:
 
 ```bash
 # 1. Decrypt on a host that IS a recipient
-ssh jcaro@192.168.10.122 'sudo cat /run/agenix/<name>' > /tmp/plaintext
+ssh jcaro@192.168.10.200 'sudo cat /run/agenix/<name>' > /tmp/plaintext
 
 # 2. Delete the unreadable file
 rm secrets/<name>.age
