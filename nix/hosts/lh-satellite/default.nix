@@ -10,6 +10,7 @@
     ../../modules/tailscale.nix
     ../../modules/k3s-bootstrap.nix
     ../../modules/flux-bootstrap.nix
+    ../../modules/obsidian-tailscale.nix
   ];
 
   networking.hostName = hostname;

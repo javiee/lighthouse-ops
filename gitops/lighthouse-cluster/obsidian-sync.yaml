@@ -1,0 +1,22 @@
+---
+# Reconciles the Obsidian LiveSync (CouchDB) manifests from THIS ops repo.
+#
+# Client access is over the tailnet only:
+#   https://lh-satellite.tail8c42d8.ts.net  (tailscale serve on lh-satellite,
+#   see nix/modules/obsidian-tailscale.nix) -> ClusterIP 10.43.20.9:5984.
+# The admin password for CouchDB lives in the out-of-band `couchdb-admin`
+# secret (namespace obsidian-sync), never in this repo.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: obsidian-sync
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./gitops/apps/obsidian-sync
+  prune: true
+  wait: true
+  timeout: 5m0s

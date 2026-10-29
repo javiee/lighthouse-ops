@@ -1,0 +1,113 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: obsidian-sync
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: couchdb-data
+  namespace: obsidian-sync
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: couchdb
+  namespace: obsidian-sync
+  labels:
+    app: couchdb
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: couchdb
+  template:
+    metadata:
+      labels:
+        app: couchdb
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: lh-satellite
+      containers:
+        - name: couchdb
+          # Semi-official Apache image (apache/couchdb-docker). Runs as root
+          # (no USER directive), so the root-owned local-path volume works
+          # without a securityContext override.
+          image: couchdb:3.5.3
+          imagePullPolicy: IfNotPresent
+          env:
+            # Secret is created out-of-band (never committed to this repo):
+            #   kubectl -n obsidian-sync create secret generic couchdb-admin \
+            #     --from-literal=COUCHDB_USER=admin \
+            #     --from-literal=COUCHDB_PASSWORD=<generated>
+            - name: COUCHDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-admin
+                  key: COUCHDB_USER
+            - name: COUCHDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-admin
+                  key: COUCHDB_PASSWORD
+          ports:
+            - name: http
+              containerPort: 5984
+          livenessProbe:
+            httpGet:
+              path: /_up
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /_up
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /opt/couchdb/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: couchdb-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: couchdb
+  namespace: obsidian-sync
+  labels:
+    app: couchdb
+spec:
+  type: ClusterIP
+  # Pinned so tailscale serve on lh-satellite
+  # (nix/modules/obsidian-tailscale.nix) has a stable backend address.
+  # Chosen from k3s' service CIDR (10.43.0.0/16), verified free 2026-10-29.
+  # ClusterIP only: no NodePort/Ingress, so the plaintext segment between
+  # tailscaled and this pod stays node-local.
+  clusterIP: 10.43.20.9
+  selector:
+    app: couchdb
+  ports:
+    - name: http
+      port: 5984
+      targetPort: http
