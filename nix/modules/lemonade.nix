@@ -1,4 +1,4 @@
-{ lib, nix-amd-ai, _unstablePkgs, ... }:
+{ lib, pkgs, nix-amd-ai, _unstablePkgs, ... }:
 
 # Lemonade — AMD's local AI server (OpenAI-compatible), via noamsto/nix-amd-ai.
 #
@@ -134,22 +134,52 @@
         # leaf values), so its --flash-attn is repeated here. Flash attention
         # is required for a quantized V cache in llama.cpp.
         #
-        # --chat-template-kwargs: Qwen3.8's template defaults reasoning_effort
-        # to xhigh (valid: low | medium | xhigh; "high" maps to xhigh, anything
-        # else raises). Lemonade keeps ONE value per flag, so this replaces the
-        # qwen35 architecture default '{"preserve_thinking":true}' — keep that
-        # key here or it is lost. Templates that don't read these keys (gemma)
-        # ignore them. Clients can still override per request with
-        # "reasoning_effort" (llama-server honours it; verified via
-        # /apply-template). --spec-type draft-mtp needs nothing here: lemond
-        # adds it for this GGUF on its own.
-        llamacpp.args = "--flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --chat-template-kwargs '{\"preserve_thinking\":true,\"reasoning_effort\":\"medium\"}'";
+        # These are the LOWEST-priority args (config.json, layer 4): lemonade's
+        # per-architecture defaults beat them flag by flag. Anything a model's
+        # architecture sets — e.g. --chat-template-kwargs for qwen35 — must go
+        # in recipeOptions below instead (verified: putting it here was ignored).
+        llamacpp.args = "--flash-attn on --cache-type-k q8_0 --cache-type-v q8_0";
       };
     };
   };
 
   # Lemonade needs GPU device access as its service user.
   users.users.jcaro.extraGroups = [ "video" "render" ];
+
+  # Per-model options (recipe_options.json, layer 2 — above the architecture
+  # defaults). Keyed by model name with its source prefix: GGUFs found under
+  # extra_models_dir are "extra.<name>". *_args combine flag by flag across
+  # layers, so only the flags that must win are listed here.
+  #
+  # Qwen3.8's chat template defaults reasoning_effort to xhigh (valid: low |
+  # medium | xhigh; "high" maps to xhigh, anything else raises). The qwen35
+  # architecture default sets --chat-template-kwargs '{"preserve_thinking":true}',
+  # and this flag REPLACES it, so preserve_thinking is repeated. Clients can
+  # still override per request with "reasoning_effort" (llama-server honours
+  # it). --spec-type draft-mtp needs nothing: lemond adds it for this GGUF.
+  systemd.services.lemond.serviceConfig.ExecStartPre =
+    let
+      recipeOptions = pkgs.writeText "lemonade-recipe-options.json" (builtins.toJSON {
+        "extra.Qwen3.8-27B-UD-Q4_K_XL".llamacpp_args =
+          "--chat-template-kwargs '{\"preserve_thinking\":true,\"reasoning_effort\":\"medium\"}'";
+      });
+    in
+    # Same merge as the module's own lemond-reconcile-config does for
+    # config.json: Nix keys win, anything saved from the web UI is kept.
+    [
+      "${pkgs.writeShellApplication {
+        name = "lemond-reconcile-recipe-options";
+        runtimeInputs = [ pkgs.jq pkgs.coreutils ];
+        text = ''
+          dir="''${XDG_CONFIG_HOME:-$HOME/.config}/lemonade"
+          file="$dir/recipe_options.json"
+          mkdir -p "$dir"
+          [ -s "$file" ] || echo '{}' > "$file"
+          jq -s '.[0] * .[1]' "$file" ${recipeOptions} > "$file.nix-reconcile"
+          mv "$file.nix-reconcile" "$file"
+        '';
+      }}/bin/lemond-reconcile-recipe-options"
+    ];
 
   systemd.services.lemond = {
     # Hand-wired mutual exclusion — see the VRAM note above.
