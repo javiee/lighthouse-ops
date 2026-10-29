@@ -157,11 +157,25 @@
   # and this flag REPLACES it, so preserve_thinking is repeated. Clients can
   # still override per request with "reasoning_effort" (llama-server honours
   # it). --spec-type draft-mtp needs nothing: lemond adds it for this GGUF.
+  #
+  # --cache-ram: host-RAM cache for prompts evicted from the single slot, so
+  # switching between 2-3 long opencode sessions restores instead of
+  # reprocessing (2-6 min to first token at 70k-125k tokens). The default
+  # 8 GiB held only ONE entry: a long session's cache measured 5-6.5 GiB.
+  # Host RAM only (16 of 30 GiB; earlyoom acts below 5% free) — no VRAM.
+  #
+  # Do NOT add --parallel N / --kv-unified for this model. Tried 2026-10-29:
+  # Qwen3.8's Gated Delta Net layers keep recurrent state PER SLOT (kv-unified
+  # only shares the attention KV), so 4 slots no longer fit the 32 GB card,
+  # llama.cpp put layers on the CPU ("layer 0 is assigned to device CPU"), and
+  # generation fell from ~30-50 to 1-5 tok/s with the GPU idle.
   systemd.services.lemond.serviceConfig.ExecStartPre =
     let
       recipeOptions = pkgs.writeText "lemonade-recipe-options.json" (builtins.toJSON {
-        "extra.Qwen3.8-27B-UD-Q4_K_XL".llamacpp_args =
-          "--chat-template-kwargs '{\"preserve_thinking\":true,\"reasoning_effort\":\"medium\"}'";
+        "extra.Qwen3.8-27B-UD-Q4_K_XL".llamacpp_args = lib.concatStringsSep " " [
+          "--chat-template-kwargs '{\"preserve_thinking\":true,\"reasoning_effort\":\"medium\"}'"
+          "--cache-ram 16384"
+        ];
       });
     in
     # Same merge as the module's own lemond-reconcile-config does for
