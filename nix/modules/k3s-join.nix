@@ -12,7 +12,7 @@
   services.k3s = {
     enable = true;
     role = "agent";  # or "server" for HA
-    serverAddr = "https://192.168.10.122:6443";
+    serverAddr = "https://192.168.10.200:6443";
     tokenFile = config.age.secrets.k3s-token.path;
   };
 
