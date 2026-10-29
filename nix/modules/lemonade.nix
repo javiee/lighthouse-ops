@@ -157,11 +157,28 @@
   # and this flag REPLACES it, so preserve_thinking is repeated. Clients can
   # still override per request with "reasoning_effort" (llama-server honours
   # it). --spec-type draft-mtp needs nothing: lemond adds it for this GGUF.
+  #
+  # Prompt caching, for switching between 2-3 long opencode sessions. With
+  # lemond's own --parallel 1, every switch evicted the other session and the
+  # whole prompt was reprocessed: 2-6 min to first token at 70k-125k tokens.
+  #   --parallel 4 --kv-unified
+  #                    4 slots (3 conversations + 1 for opencode's title/summary
+  #                    side calls) sharing ONE unified KV pool — no extra VRAM,
+  #                    a single session can still use the full ctx_size. The
+  #                    cached conversations together must fit ctx_size.
+  #   --cache-ram      host-RAM cache for evicted slots. Default 8 GiB held only
+  #                    ONE entry: a long session's cache measured 5-6.5 GiB.
+  #                    16 GiB of 30; earlyoom only acts below 5% free.
   systemd.services.lemond.serviceConfig.ExecStartPre =
     let
       recipeOptions = pkgs.writeText "lemonade-recipe-options.json" (builtins.toJSON {
-        "extra.Qwen3.8-27B-UD-Q4_K_XL".llamacpp_args =
-          "--chat-template-kwargs '{\"preserve_thinking\":true,\"reasoning_effort\":\"medium\"}'";
+        "extra.Qwen3.8-27B-UD-Q4_K_XL".llamacpp_args = lib.concatStringsSep " " [
+          "--chat-template-kwargs '{\"preserve_thinking\":true,\"reasoning_effort\":\"medium\"}'"
+          # Long forms on purpose: lemond adds its own "--parallel 1", and the
+          # per-flag merge must see the same key to let this one win.
+          "--parallel 4 --kv-unified"
+          "--cache-ram 16384"
+        ];
       });
     in
     # Same merge as the module's own lemond-reconcile-config does for
