@@ -15,8 +15,8 @@
     extraFlags = [
         "--write-kubeconfig-mode=0640"
         "--write-kubeconfig-group=kubeconfig"
-        "--node-ip=192.168.10.122"
-        "--advertise-address=192.168.10.122"
+        "--node-ip=192.168.10.200"
+        "--advertise-address=192.168.10.200"
       # "--tls-san=<tailscale-hostname-or-dns>"
     ];
   };

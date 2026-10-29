@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   lib,
   nixpkgs-unstable,    # flake input — usable as a path string
@@ -43,7 +44,11 @@
   ];
 
   services.llama-swap = {
-    enable = true;
+    # Disabled 2026-10-28: lemond (lemonade.nix) now owns the GPU at boot and
+    # serves hermes-agent + pharos-sre-bot. The model config below is kept so
+    # flipping this back is a one-line change — disable lemonade's autoStart
+    # if you do, they cannot share the card.
+    enable = false;
     package = _unstablePkgs.llama-swap;   # use unstable's llama-swap binary
     listenAddress = "0.0.0.0";
     port = 9090;
@@ -271,7 +276,11 @@
   # User, etc.) is preserved. Wrapping the whole attrset in mkForce REPLACES
   # the entire serviceConfig, killing ExecStart — which is what just broke
   # the unit.
-  systemd.services.llama-swap.serviceConfig = {
+  #
+  # Gated on enable: defining systemd.services.llama-swap.* unconditionally
+  # would still generate a stub unit (no ExecStart) while the service is off.
+  systemd.services.llama-swap = lib.mkIf config.services.llama-swap.enable {
+  serviceConfig = {
     ProtectHome           = lib.mkForce false;
     ProtectSystem         = lib.mkForce false;
     ProtectClock          = lib.mkForce false;
@@ -301,11 +310,13 @@
   # onto it, backed by system RAM, which is both slow and liable to fail on an
   # arch rocBLAS does not support. Hide it so every llama-server that
   # llama-swap spawns sees only the R9700 as ROCm0.
-  systemd.services.llama-swap.environment.ROCR_VISIBLE_DEVICES = "0";
+  environment.ROCR_VISIBLE_DEVICES = "0";
+  };
 
   # Only llama-swap is publicly reachable; inner llama-server instances
   # listen on 127.0.0.1 with ports llama-swap assigns dynamically.
-  networking.firewall.allowedTCPPorts = [ 9090 ];
+  networking.firewall.allowedTCPPorts =
+    lib.mkIf config.services.llama-swap.enable [ 9090 ];
 
   # Proactive OOM protection. The mlock'd model weights + KV cache can't be
   # reclaimed under pressure, so the in-kernel OOM killer is too slow and the

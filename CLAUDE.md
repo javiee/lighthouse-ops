@@ -133,8 +133,8 @@ No container runtime shim is needed — AMD GPUs reach containers through `/dev/
 
 Two servers, mutually exclusive by systemd `Conflicts=` (the card has 31.86 GiB and one resident model is ~20-23 GiB):
 
-- **llama-swap** (`:9090`) — the fast path. Full llama.cpp flag control: TurboQuant `turbo4` KV cache plus `--spec-type draft-mtp`. Measured 50.2 tok/s on Qwen3.8-27B-Q4_K_XL, vs 27.1 without MTP.
-- **lemonade** (`:13305`) — model manager, web UI, and the multimodal extras. `autoStart = false`, so llama-swap owns the GPU at boot; `systemctl start lemond` takes it, `systemctl start llama-swap` takes it back.
+- **lemonade** (`:13305`) — the active server. Model manager, web UI, and the multimodal extras. `autoStart = true`, so lemond owns the GPU at boot; hermes-agent and pharos-sre-bot both point at it.
+- **llama-swap** (`:9090`) — **disabled** (`enable = false` in `llama-swap.nix`, 2026-10-28); config kept for re-enabling. Full llama.cpp flag control: TurboQuant `turbo4` KV cache plus `--spec-type draft-mtp`. Measured 50.2 tok/s on Qwen3.8-27B-Q4_K_XL, vs 27.1 without MTP. Re-enabling it means turning lemonade's `autoStart` back off.
 
 Ollama was removed 2026-09-07: it had never served a request, held no models, and duplicated both servers for 4.1 GiB of closure.
 

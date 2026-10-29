@@ -1,4 +1,4 @@
-{ lib, nix-amd-ai, _unstablePkgs, ... }:
+{ lib, pkgs, nix-amd-ai, _unstablePkgs, ... }:
 
 # Lemonade — AMD's local AI server (OpenAI-compatible), via noamsto/nix-amd-ai.
 #
@@ -23,10 +23,10 @@
 # below. Starting lemond stops llama-swap, and vice versa
 # (systemd Conflicts= is bidirectional).
 #
-# autoStart = false, so llama-swap still owns the GPU at boot. To test:
-#   sudo systemctl start lemond      # stops llama-swap
+# autoStart = true: lemond owns the GPU at boot (hermes-agent and
+# pharos-sre-bot point at :13305). llama-swap is disabled in llama-swap.nix;
+# the Conflicts=/After= below stay so re-enabling it can't double-book VRAM.
 #   curl http://leviathan:13305/api/v1/models
-#   sudo systemctl start llama-swap  # hands the GPU back
 
 {
   imports = [ nix-amd-ai.nixosModules.default ];
@@ -80,7 +80,7 @@
     gpuTarget = "gfx1150";
 
     lemonade = {
-      autoStart = false;       # llama-swap keeps the GPU at boot; start this by hand
+      autoStart = true;        # lemond owns the GPU at boot (llama-swap is disabled)
       host = "0.0.0.0";        # firewall still gates the LAN
       port = 13305;
       user = "jcaro";
@@ -133,6 +133,11 @@
         # Overrides the module's own args string (recursiveUpdate replaces
         # leaf values), so its --flash-attn is repeated here. Flash attention
         # is required for a quantized V cache in llama.cpp.
+        #
+        # These are the LOWEST-priority args (config.json, layer 4): lemonade's
+        # per-architecture defaults beat them flag by flag. Anything a model's
+        # architecture sets — e.g. --chat-template-kwargs for qwen35 — must go
+        # in recipeOptions below instead (verified: putting it here was ignored).
         llamacpp.args = "--flash-attn on --cache-type-k q8_0 --cache-type-v q8_0";
       };
     };
@@ -140,6 +145,41 @@
 
   # Lemonade needs GPU device access as its service user.
   users.users.jcaro.extraGroups = [ "video" "render" ];
+
+  # Per-model options (recipe_options.json, layer 2 — above the architecture
+  # defaults). Keyed by model name with its source prefix: GGUFs found under
+  # extra_models_dir are "extra.<name>". *_args combine flag by flag across
+  # layers, so only the flags that must win are listed here.
+  #
+  # Qwen3.8's chat template defaults reasoning_effort to xhigh (valid: low |
+  # medium | xhigh; "high" maps to xhigh, anything else raises). The qwen35
+  # architecture default sets --chat-template-kwargs '{"preserve_thinking":true}',
+  # and this flag REPLACES it, so preserve_thinking is repeated. Clients can
+  # still override per request with "reasoning_effort" (llama-server honours
+  # it). --spec-type draft-mtp needs nothing: lemond adds it for this GGUF.
+  systemd.services.lemond.serviceConfig.ExecStartPre =
+    let
+      recipeOptions = pkgs.writeText "lemonade-recipe-options.json" (builtins.toJSON {
+        "extra.Qwen3.8-27B-UD-Q4_K_XL".llamacpp_args =
+          "--chat-template-kwargs '{\"preserve_thinking\":true,\"reasoning_effort\":\"medium\"}'";
+      });
+    in
+    # Same merge as the module's own lemond-reconcile-config does for
+    # config.json: Nix keys win, anything saved from the web UI is kept.
+    [
+      "${pkgs.writeShellApplication {
+        name = "lemond-reconcile-recipe-options";
+        runtimeInputs = [ pkgs.jq pkgs.coreutils ];
+        text = ''
+          dir="''${XDG_CONFIG_HOME:-$HOME/.config}/lemonade"
+          file="$dir/recipe_options.json"
+          mkdir -p "$dir"
+          [ -s "$file" ] || echo '{}' > "$file"
+          jq -s '.[0] * .[1]' "$file" ${recipeOptions} > "$file.nix-reconcile"
+          mv "$file.nix-reconcile" "$file"
+        '';
+      }}/bin/lemond-reconcile-recipe-options"
+    ];
 
   systemd.services.lemond = {
     # Hand-wired mutual exclusion — see the VRAM note above.
