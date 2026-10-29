@@ -133,7 +133,17 @@
         # Overrides the module's own args string (recursiveUpdate replaces
         # leaf values), so its --flash-attn is repeated here. Flash attention
         # is required for a quantized V cache in llama.cpp.
-        llamacpp.args = "--flash-attn on --cache-type-k q8_0 --cache-type-v q8_0";
+        #
+        # --chat-template-kwargs: Qwen3.8's template defaults reasoning_effort
+        # to xhigh (valid: low | medium | xhigh; "high" maps to xhigh, anything
+        # else raises). Lemonade keeps ONE value per flag, so this replaces the
+        # qwen35 architecture default '{"preserve_thinking":true}' — keep that
+        # key here or it is lost. Templates that don't read these keys (gemma)
+        # ignore them. Clients can still override per request with
+        # "reasoning_effort" (llama-server honours it; verified via
+        # /apply-template). --spec-type draft-mtp needs nothing here: lemond
+        # adds it for this GGUF on its own.
+        llamacpp.args = "--flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 --chat-template-kwargs '{\"preserve_thinking\":true,\"reasoning_effort\":\"medium\"}'";
       };
     };
   };
