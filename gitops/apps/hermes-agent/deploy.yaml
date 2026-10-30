@@ -81,8 +81,10 @@ spec:
 
     env:
        HERMES_DASHBOARD: "1"
+       # v0.22+ refuses a non-loopback dashboard without an auth provider
+       # (HERMES_DASHBOARD_INSECURE no longer bypasses it), so basic auth comes
+       # from Secret hermes-dashboard-auth below.
        HERMES_DASHBOARD_HOST: "0.0.0.0"
-       HERMES_DASHBOARD_INSECURE: "1"
        API_SERVER_ENABLED: "true"
        API_SERVER_HOST: "0.0.0.0"
        API_SERVER_KEY: "change-me-in-production"
@@ -161,6 +163,14 @@ spec:
         secretKeyRef:
           name: hermes-hass-token
           key: hass-token
+      HERMES_DASHBOARD_BASIC_AUTH_USERNAME:
+        secretKeyRef:
+          name: hermes-dashboard-auth
+          key: username
+      HERMES_DASHBOARD_BASIC_AUTH_PASSWORD:
+        secretKeyRef:
+          name: hermes-dashboard-auth
+          key: password
 
     telegram:
        allowed_users: "612246271"
