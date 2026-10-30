@@ -154,8 +154,15 @@
   };
 
   # Prebuilt on cache.nixos.org (whisper-cpp 1.9.2, the version lemonade expects).
+  # whisper-server only decodes WAV; Telegram voice notes are OGG/Opus and were
+  # rejected with "400 Invalid request". --convert makes it transcode through
+  # ffmpeg (shelled out, so ffmpeg must be on PATH); its tmp dir defaults to the
+  # cwd, which for lemond is not guaranteed writable.
   environment.etc."lemonade/backends/whispercpp-vulkan".source =
-    "${pkgs.whisper-cpp-vulkan}/bin/whisper-server";
+    pkgs.writeShellScript "whispercpp-vulkan" ''
+      export PATH=${pkgs.ffmpeg-headless}/bin:$PATH
+      exec ${pkgs.whisper-cpp-vulkan}/bin/whisper-server --convert --tmp-dir /tmp "$@"
+    '';
 
   # Lemonade needs GPU device access as its service user.
   users.users.jcaro.extraGroups = [ "video" "render" ];
