@@ -77,6 +77,17 @@ spec:
         else
           echo "hermes venv is not python3.13; skipping STT .pth (patched stack is 3.13-only)" >&2
         fi
+        # v0.22 no longer passes GITHUB_TOKEN into terminal/execute_code
+        # (provider-credential blocklist, GHSA-rhgp-j443-p4rf), so `gh` there
+        # authenticates from its own hosts.yml instead. Refresh it from the
+        # Secret on every start; the terminal's HOME is /opt/data/home. gh
+        # refuses --with-token while GITHUB_TOKEN is set, hence env -u.
+        if [ -n "${GITHUB_TOKEN:-}" ]; then
+          printf '%s\n' "$GITHUB_TOKEN" \
+            | env -u GITHUB_TOKEN HOME=/opt/data/home gh auth login -h github.com --with-token \
+            && env -u GITHUB_TOKEN HOME=/opt/data/home gh auth setup-git -h github.com \
+            || echo "gh auth refresh failed; gh in the terminal will be unauthenticated" >&2
+        fi
         exec hermes gateway run
 
     env:
