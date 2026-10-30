@@ -139,9 +139,23 @@
         # architecture sets — e.g. --chat-template-kwargs for qwen35 — must go
         # in recipeOptions below instead (verified: putting it here was ignored).
         llamacpp.args = "--flash-attn on --cache-type-k q8_0 --cache-type-v q8_0";
+
+        # Whisper on the GPU (hermes voice notes, Whisper-Large-v3-Turbo). The
+        # module only wires whispercpp-cpu unless enableVulkan, which would
+        # also pull in Vulkan llama.cpp and sd-cpp builds we don't use — so just
+        # this one backend is added below. Measured on CPU: 31 s for a 4 s clip.
+        # Transcription has its own model slot, so it loads next to the LLM.
+        whispercpp = {
+          backend = "vulkan";
+          vulkan_bin = "/etc/lemonade/backends/whispercpp-vulkan";
+        };
       };
     };
   };
+
+  # Prebuilt on cache.nixos.org (whisper-cpp 1.9.2, the version lemonade expects).
+  environment.etc."lemonade/backends/whispercpp-vulkan".source =
+    "${pkgs.whisper-cpp-vulkan}/bin/whisper-server";
 
   # Lemonade needs GPU device access as its service user.
   users.users.jcaro.extraGroups = [ "video" "render" ];
@@ -210,6 +224,13 @@
     # llama-swap.nix carries the same guard, and lemond spawns its own
     # llama-server processes so it needs its own copy.
     environment.ROCR_VISIBLE_DEVICES = "0";
+
+    # Same idea for Vulkan (whispercpp-vulkan), but here the order is reversed
+    # and it is NOT a precaution: RADV enumerates the iGPU as device 0 and
+    # whisper.cpp picks device 0, so without this whisper runs on the 7600X
+    # iGPU. Index 1 = R9700 (checked with ggml_vulkan's device list). 0.15 s
+    # for a 4 s clip on the R9700 vs 31 s on the CPU backend.
+    environment.GGML_VK_VISIBLE_DEVICES = "1";
   };
 
   networking.firewall.allowedTCPPorts = [ 13305 ];
