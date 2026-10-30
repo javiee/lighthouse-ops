@@ -11,7 +11,9 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAMESPACE: javiee/lighthouse-ops
-  HERMES_VERSION: v2026.5.29.2
+  HERMES_VERSION: v0.22.5
+  # Short SHA of the vrtmrz/livesync-bridge commit pinned in its Dockerfile.
+  LIVESYNC_BRIDGE_VERSION: "0632718"
 
 jobs:
   build:
@@ -31,29 +33,42 @@ jobs:
           filters: |
             hermes:
               - 'docker/hermes/**'
+            livesync-bridge:
+              - 'docker/livesync-bridge/**'
 
-      - name: Build and push images
-        if: steps.filter.outputs.hermes == 'true'
+      - name: Set up Docker Buildx
+        if: steps.filter.outputs.hermes == 'true' || steps.filter.outputs.livesync-bridge == 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          # Set up Docker Buildx
           docker buildx create --name builder --use
           docker buildx inspect --bootstrap > /dev/null
-
-          # Login to GHCR
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-          DOCKERFILE="docker/hermes/Dockerfile"
-          TAG="${{ env.HERMES_VERSION }}"
+      - name: Build and push hermes
+        if: steps.filter.outputs.hermes == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/hermes"
-          echo "========================================"
+          TAG="${{ env.HERMES_VERSION }}"
           echo "Building hermes -> $IMAGE:$TAG"
-          echo "========================================"
           docker buildx build \
-            -f "$DOCKERFILE" \
+            -f docker/hermes/Dockerfile \
             --push \
             -t "$IMAGE:$TAG" \
             -t "$IMAGE:latest" \
-            --cache-from=type=gha \
-            --cache-to=type=gha,mode=max \
+            --cache-from=type=gha,scope=hermes \
+            --cache-to=type=gha,mode=max,scope=hermes \
             .
-          echo "Successfully pushed $IMAGE:$TAG and $IMAGE:latest"
+
+      - name: Build and push livesync-bridge
+        if: steps.filter.outputs.livesync-bridge == 'true' || github.event_name == 'workflow_dispatch'
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/livesync-bridge"
+          TAG="${{ env.LIVESYNC_BRIDGE_VERSION }}"
+          echo "Building livesync-bridge -> $IMAGE:$TAG"
+          docker buildx build \
+            -f docker/livesync-bridge/Dockerfile \
+            --push \
+            -t "$IMAGE:$TAG" \
+            -t "$IMAGE:latest" \
+            --cache-from=type=gha,scope=livesync-bridge \
+            --cache-to=type=gha,mode=max,scope=livesync-bridge \
+            docker/livesync-bridge
