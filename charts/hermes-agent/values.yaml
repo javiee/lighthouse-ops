@@ -48,3 +48,7 @@ affinity: {}
 
 # Extra /etc/hosts entries for the pod, e.g. pinning a public hostname to a LAN IP.
 hostAliases: []
+
+# Sidecar containers, rendered verbatim into the pod spec. They can mount the
+# `data` volume (the PVC at /opt/data) to share files with hermes.
+extraContainers: []

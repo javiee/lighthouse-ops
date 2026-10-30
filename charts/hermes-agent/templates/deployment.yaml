@@ -67,6 +67,9 @@ spec:
               mountPath: /opt/data
             - name: dshm
               mountPath: /dev/shm
+        {{- with .Values.extraContainers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       volumes:
         - name: data
           {{- if .Values.persistence.enabled }}

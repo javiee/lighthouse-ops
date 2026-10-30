@@ -38,7 +38,7 @@ spec:
   values:
     image:
       repository: ghcr.io/javiee/lighthouse-ops/hermes
-      tag: v2026.5.29.2
+      tag: v0.22.5
       pullPolicy: Always
 
     nodeSelector:
@@ -60,14 +60,19 @@ spec:
     # before the gateway starts, means the cron job never sees a boot-time
     # change and the gateway is never killed for it.
     # NOTE: path hardcodes python3.13, same as the cron script's USER_SITE.
-    # If the image bumps the minor version, update both.
+    # The patched packages include compiled 3.13 wheels, so the .pth is only
+    # written when the venv is 3.13 — on any other Python it would put
+    # ABI-incompatible modules on sys.path. If the image moves off 3.13,
+    # rebuild that site-packages for the new version and update both paths.
     args:
       - sh
       - -c
       - |
-        SITE=$(ls -d /opt/hermes/.venv/lib/python*/site-packages 2>/dev/null | head -1)
+        SITE=$(ls -d /opt/hermes/.venv/lib/python3.13/site-packages 2>/dev/null | head -1)
         if [ -n "$SITE" ]; then
           printf '/opt/data/home/.local/lib/python3.13/site-packages\n' > "$SITE/hermes_stt_user_site.pth"
+        else
+          echo "hermes venv is not python3.13; skipping STT .pth (patched stack is 3.13-only)" >&2
         fi
         exec hermes gateway run
 
@@ -86,6 +91,58 @@ spec:
        # hostname verification. Use the cert hostname; hostAliases below pins it to the
        # internal LAN IP so traffic stays local (no NAT hairpin) and TLS still verifies.
        HASS_URL: "https://home-pinos.duckdns.org:8123"
+       # Obsidian skill (filesystem-only). The folder is kept in sync with the
+       # LiveSync CouchDB vault by the livesync-bridge sidecar below.
+       OBSIDIAN_VAULT_PATH: "/opt/data/obsidian-vault"
+
+    # livesync-bridge: two-way sync between the LiveSync database in CouchDB
+    # (gitops/apps/obsidian-sync) and /opt/data/obsidian-vault on the shared
+    # PVC. Notes hermes writes there show up on every Obsidian device, and
+    # vice versa. Image built from docker/livesync-bridge/.
+    #
+    # Credentials and E2EE settings come from Secret `obsidian-livesync` in
+    # this namespace (created out-of-band, never committed):
+    #   COUCHDB_USER, COUCHDB_PASSWORD   — copy of obsidian-sync/couchdb-admin
+    #   LIVESYNC_PASSPHRASE              — plugin E2EE passphrase ("" if off)
+    #   LIVESYNC_OBFUSCATE_PASSPHRASE    — path obfuscation passphrase ("" if off)
+    #   LIVESYNC_ID_KEY                  — plugin "Show current recovery code" (if E2EE)
+    # Only this container gets them; hermes itself never sees CouchDB creds.
+    #
+    # The bridge idles until the plugin has initialised the `obsidian`
+    # database, so the Obsidian side must be set up first with that name.
+    # Runs as UID 10000 (hermes) so both containers can write the vault.
+    # Bridge resume checkpoints persist in /opt/data/livesync-bridge/.
+    extraContainers:
+      - name: livesync-bridge
+        image: ghcr.io/javiee/lighthouse-ops/livesync-bridge:0632718
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: COUCHDB_URL
+            value: http://couchdb.obsidian-sync.svc.cluster.local:5984
+          - name: LIVESYNC_DATABASE
+            value: obsidian
+          - name: LIVESYNC_VAULT_DIR
+            value: /opt/data/obsidian-vault
+          - name: LSB_STATE_DIR
+            value: /opt/data/livesync-bridge/location_data
+        envFrom:
+          - secretRef:
+              name: obsidian-livesync
+              optional: true
+        securityContext:
+          runAsUser: 10000
+          runAsGroup: 10000
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+        # Whole PVC, not subPaths: kubelet creates missing subPath dirs as
+        # root, which UID 10000 could not write.
+        volumeMounts:
+          - name: data
+            mountPath: /opt/data
 
     hostAliases:
       - ip: "192.168.10.65"

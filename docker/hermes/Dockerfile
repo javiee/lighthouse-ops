@@ -1,4 +1,4 @@
-FROM nousresearch/hermes-agent:v2026.5.29.2
+FROM nousresearch/hermes-agent:v0.22.5
 
 RUN ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m) && \
     case "$ARCH" in \
