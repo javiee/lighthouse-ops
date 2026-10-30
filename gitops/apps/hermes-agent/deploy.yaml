@@ -12,6 +12,9 @@ metadata:
 spec:
   interval: 1m
   chart: ./charts/hermes-agent
+  # Repackage on every Git change. The default (ChartVersion) only notices a
+  # Chart.yaml version bump, so template edits were silently not deployed.
+  reconcileStrategy: Revision
   sourceRef:
     kind: GitRepository
     name: hermes-agent-branch
