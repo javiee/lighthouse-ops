@@ -5,6 +5,12 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # opencode only. Pinned separately so upgrading opencode never moves
+    # nixpkgs-unstable, which also carries leviathan's kernel/ROCm stack.
+    # Bump by pointing this at a newer nixos-unstable rev whose opencode is
+    # already on cache.nixos.org (check the .narinfo before bumping).
+    nixpkgs-opencode.url = "github:NixOS/nixpkgs/0bb2eedc20e4739f29e8045034f2828ad7054f8f";
+
     # AMD AI stack for NixOS (Lemonade server + ROCm/Vulkan llama.cpp,
     # whisper.cpp, stable-diffusion.cpp backends wired declaratively).
     #
@@ -21,7 +27,7 @@
 
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, agenix, nix-amd-ai, ... }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, nixpkgs-opencode, agenix, nix-amd-ai, ... }:
     let
       mkHost = hostname: nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
@@ -36,6 +42,7 @@
             system = "x86_64-linux";
             config.allowUnfree = true;
           };
+          opencode = nixpkgs-opencode.legacyPackages.x86_64-linux.opencode;
         };
         modules = [
           agenix.nixosModules.default
@@ -68,8 +75,10 @@
             config.allowUnfree = true;
           };
 
-          # 25.11 has opencode 1.1.14; unstable has 1.18.25 and it is prebuilt
-          # on cache.nixos.org.
+          # opencode comes from its own pinned input (nixpkgs-opencode), so
+          # bumping it never moves nixpkgs-unstable.
+          opencode = nixpkgs-opencode.legacyPackages.${system}.opencode;
+
           upkgs = import nixpkgs-unstable {
             inherit system;
             config.allowUnfree = true;
@@ -105,7 +114,7 @@
               jq
               yq-go
               # AI / models
-              upkgs.opencode                        # 1.18.25 from nixpkgs-unstable (cached)
+              opencode                              # 2.2.1 from nixpkgs-opencode (cached)
               aider-chat-no-tests                    # aider — AI pair programmer (aider.chat); tests disabled (litellm metadata drift)
               python3Packages.huggingface-hub       # provides `hf` (and legacy `huggingface-cli`) on PATH
               # Terminal
