@@ -107,6 +107,8 @@
               # Secrets
               age
               agenix.packages.${system}.default
+              sops                                # SOPS (decrypts gitops/secrets/*.sops.yaml; Flux bundles its own)
+              gitleaks                            # pre-commit secret scanner (.git/hooks/pre-commit)
               # GitHub / VCS
               gh
               git
@@ -122,6 +124,9 @@
             ];
 
             shellHook = ''
+              # SOPS age key for gitops/secrets (sops-plugin-age does not glob
+              # ~/.config/sops/age/, so point it at the file explicitly).
+              export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/key-lighthouse.txt"
               echo "── lighthouse-ops dev shell ─────────────────────────"
               echo "  kubectl   $(kubectl version --client 2>/dev/null | head -1)"
               echo "  helm      $(helm version --short 2>/dev/null)"
