@@ -102,7 +102,7 @@ spec:
   # Pinned so tailscale serve on lh-satellite
   # (nix/modules/obsidian-tailscale.nix) has a stable backend address.
   # Chosen from k3s' service CIDR (10.43.0.0/16), verified free 2026-10-29.
-  # Also exposed on the LAN by the Ingress below (plain HTTP, for the Mac,
+  # Also exposed on the LAN by the host-less Ingress below (plain HTTP, for the Mac,
   # which is on another tailnet); the Tailscale HTTPS path is unchanged.
   clusterIP: 10.43.20.9
   selector:
@@ -112,10 +112,12 @@ spec:
       port: 5984
       targetPort: http
 ---
-# LAN access for devices not on the home tailnet: http://couchdb.lighthouse.local
-# (resolve it to lh-satellite, 192.168.10.200, in /etc/hosts). Plain HTTP, so
-# the CouchDB admin password crosses the LAN unencrypted on every request;
-# notes themselves are LiveSync E2EE. Accepted trade-off, home LAN only.
+# LAN access for devices not on the home tailnet: http://192.168.10.200
+# No host rule, so it works by IP (.lighthouse.local names stall on macOS'
+# mDNS lookup) and catches only requests no Host-based router claims; the
+# other *.lighthouse.local sites win on rule priority. Plain HTTP, so the
+# CouchDB admin password crosses the LAN unencrypted on every request; notes
+# themselves are LiveSync E2EE. Accepted trade-off, home LAN only.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -126,8 +128,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: couchdb.lighthouse.local
-      http:
+    - http:
         paths:
           - path: /
             pathType: Prefix
