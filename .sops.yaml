@@ -1,0 +1,15 @@
+# SOPS configuration for encrypted Kubernetes secrets.
+#
+# Run `sops` commands from the REPO ROOT (this file is discovered by walking
+# up from the target file). Only files matching the creation rule below get
+# encrypted with the age key below; `data`/`stringData` are the fields that
+# must never appear in plaintext in git.
+#
+# The age PUBLIC key is safe to commit. The private key lives at
+# ~/.config/sops/age/key-lighthouse.txt (with a backup in the password
+# manager) and in the `sops-age` secret in the flux-system namespace —
+# never in this repo. See gitops/secrets/README.md.
+creation_rules:
+  - path_regex: ^gitops/secrets/.+\.sops\.ya?ml$
+    encrypted_regex: ^(data|stringData)$
+    age: age1slpvlm3nh56myx200fsjdpds6su6f7quhrz27g3uq07pxed8df6q2u8fe8

@@ -1,0 +1,21 @@
+title = "lighthouse-ops gitleaks config"
+
+# Start from the built-in rules (GitHub PATs, AWS keys, private keys, ...).
+[extend]
+useDefault = true
+
+# K8s Secrets in gitops/secrets/ must be SOPS-encrypted. This rule flags a
+# plaintext value under `data:`/`stringData:` (one that does not start with
+# `ENC[` — RE2 has no lookaround, so the negation is the three alternates:
+# not-E / E-not-N / EN-not-C).
+#
+# NOTE: in `gitleaks detect --pipe` mode (the pre-commit hook) this rule is
+# inert — stdin has no path for the `path` filter, and the diff's `+`
+# line-prefixes break the multiline match. The hook enforces the same
+# guarantee itself (see the ENC guard in .git/hooks/pre-commit). This rule
+# covers whole-repo scans (`gitleaks detect --source .`, e.g. in CI).
+[[rules]]
+id = "unencrypted-k8s-secret-value"
+description = "Plaintext value under data/stringData in gitops/secrets/ (must be SOPS-encrypted)"
+path = 'gitops/secrets/.*\.ya?ml'
+regex = '''\b(stringData|data):\n(?:\s{2,}[\w-]+:\s+(?:[^E\n][^\n]*|E[^N\n][^\n]*|EN[^C\n][^\n]*))(?:\n|$)'''

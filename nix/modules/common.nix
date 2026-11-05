@@ -1,4 +1,4 @@
-{ pkgs, _unstablePkgs, ... }:
+{ pkgs, opencode, ... }:
 
 {
   boot.loader.systemd-boot.enable = true;
@@ -52,13 +52,13 @@
     htop
     tmux
     unzip
-    # opencode from nixpkgs-unstable (1.18.25), NOT from an upstream flake
-    # input. Upstream pins `packageManager: bun@1.3.14`, and both its bun.lock
-    # and its node_modules fixed-output hash come from that exact bun — which
-    # no nixpkgs channel ships (25.11: 1.3.3, unstable: 1.3.13). Building it
-    # ourselves therefore fails --frozen-lockfile. nixpkgs' own package handles
-    # this and is prebuilt on cache.nixos.org, so we get a working binary with
-    # no build at all. 25.11's opencode is far too old (1.1.14), hence unstable.
-    _unstablePkgs.opencode
+    # opencode 2.2.1 from the dedicated `nixpkgs-opencode` flake input, NOT
+    # from an upstream flake input. Upstream pins an exact bun via
+    # `packageManager`, and its bun.lock and node_modules hash come from that
+    # bun, which nixpkgs usually doesn't ship yet, so building it ourselves
+    # fails --frozen-lockfile. nixpkgs' package handles this and is prebuilt on
+    # cache.nixos.org. It has its own input so an opencode bump doesn't move
+    # nixpkgs-unstable (leviathan's kernel/ROCm).
+    opencode
   ];
 }

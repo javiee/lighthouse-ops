@@ -21,6 +21,8 @@ metadata:
   name: pharos-sre-bot
   namespace: flux-system
 spec:
+  dependsOn:
+    - name: secrets
   interval: 1m0s
   sourceRef:
     kind: GitRepository
